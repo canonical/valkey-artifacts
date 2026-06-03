@@ -1,0 +1,77 @@
+name: valkey
+base: core26
+build-base: devel # can be removed once 26.04 was released to `stable`
+version: "9.0.1"
+summary: "Valkey: open source, in memory datastore as a snap" # 79 char long summary
+description: |
+  A flexible distributed key-value database that is optimized 
+  for caching and other realtime workloads. Valkey is an open 
+  source, in memory datastore released under the BSD-3 Clause License.
+
+grade: devel # must be 'stable' to release into candidate/stable channels
+confinement: strict # use 'strict' once you have the right plugs and slots
+platforms:
+  amd64:
+  arm64:
+
+apps:
+  server:
+    command: usr/bin/valkey-server
+    daemon: simple
+    restart-condition: always
+    environment:
+      LANG: C.UTF-8
+    plugs:
+      - network
+      - network-bind
+      - network-observe
+      - home
+  cli:
+    command: usr/bin/valkey-cli
+    plugs:
+      - network
+      - network-bind
+      - network-observe
+      - home
+  benchmark:
+    command: usr/bin/valkey-benchmark
+    plugs:
+      - network
+      - network-bind
+      - network-observe
+      - home
+  check-aof:
+    command: usr/bin/valkey-check-aof
+    plugs:
+      - network
+      - network-bind
+      - network-observe
+      - home
+  check-rdb:
+    command: usr/bin/valkey-check-rdb
+    plugs:
+      - network
+      - network-bind
+      - network-observe
+      - home
+  sentinel:
+    command: usr/bin/valkey-sentinel
+    environment:
+      LANG: C.UTF-8
+    plugs:
+      - network
+      - network-bind
+      - network-observe
+      - home
+
+parts:
+  valkey:
+    plugin: make
+    source: sourcecraft:valkey
+    source-channel: 9.0-24.04/edge
+    override-build: |
+      mkdir -p ${SNAPCRAFT_PART_INSTALL}/usr
+      make BUILD_TLS=yes
+      PREFIX=${SNAPCRAFT_PART_INSTALL}/usr make BUILD_TLS=yes install
+    build-packages:
+      - libssl-dev

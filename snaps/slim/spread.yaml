@@ -1,0 +1,23 @@
+project: valkey-snap
+
+backends:
+  craft:
+    type: craft
+    systems:
+      - ubuntu-24.04
+
+suites:
+  spread/tests/:
+    summary: General integration tests
+    prepare: |
+      apt --purge remove valkey*
+    prepare-each: |
+      snap install "$CRAFT_ARTIFACT" --dangerous
+      snap start valkey.server
+    restore-each: |
+      snap remove valkey --purge --terminate
+
+exclude:
+  - .git
+
+kill-timeout: 1h
