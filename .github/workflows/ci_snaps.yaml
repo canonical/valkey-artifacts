@@ -17,21 +17,24 @@ jobs:
 
   build-charmed:
     name: Build charmed snap
-    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v40.0.2
+    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v49.0.2
     with:
       path-to-snap-project-directory: snaps/charmed
+      artifact-prefix: charmed-valkey
 
   build-slim:
     name: Build slim snap
-    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v40.0.2
+    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v49.0.2
     with:
       path-to-snap-project-directory: snaps/slim
+      artifact-prefix: valkey-slim
 
   build-standard:
     name: Build standard snap
-    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v40.0.2
+    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v49.0.2
     with:
       path-to-snap-project-directory: snaps/standard
+      artifact-prefix: valkey-standard
 
   # ── Test jobs (each waits only for its own build) ─────────────────────────
 
@@ -52,7 +55,7 @@ jobs:
           merge-multiple: true
 
       - name: Install snap
-        run: sudo snap install --dangerous charmed-valkey*.snap
+        run: sudo snap install --dangerous ${{ needs.build-charmed.outputs.artifact-prefix }}*.snap
 
       - name: Start server
         run: sudo snap start charmed-valkey.server
@@ -108,7 +111,7 @@ jobs:
           merge-multiple: true
 
       - name: Install snap
-        run: sudo snap install --dangerous valkey-slim*.snap
+        run: sudo snap install --dangerous ${{ needs.build-slim.outputs.artifact-prefix }}*.snap
 
       - name: Wait for server
         run: |
@@ -142,7 +145,7 @@ jobs:
           merge-multiple: true
 
       - name: Install snap
-        run: sudo snap install --dangerous valkey*.snap
+        run: sudo snap install --dangerous ${{ needs.build-standard.outputs.artifact-prefix }}*.snap
 
       - name: Start server
         run: sudo snap start valkey.server
