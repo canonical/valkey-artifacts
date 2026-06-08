@@ -18,6 +18,8 @@ jobs:
   build-charmed:
     name: Build charmed snap
     uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v49.0.2
+    permissions:
+      actions: read
     with:
       path-to-snap-project-directory: snaps/charmed
       artifact-prefix: charmed-valkey
@@ -25,6 +27,8 @@ jobs:
   build-slim:
     name: Build slim snap
     uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v49.0.2
+    permissions:
+      actions: read
     with:
       path-to-snap-project-directory: snaps/slim
       artifact-prefix: valkey-slim
@@ -32,6 +36,8 @@ jobs:
   build-standard:
     name: Build standard snap
     uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v49.0.2
+    permissions:
+      actions: read
     with:
       path-to-snap-project-directory: snaps/standard
       artifact-prefix: valkey-standard
