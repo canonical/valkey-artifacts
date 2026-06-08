@@ -64,7 +64,7 @@ jobs:
           merge-multiple: true
 
       - name: Install snap
-        run: sudo snap install --dangerous ${{ needs.build-charmed.outputs.artifact-prefix }}*.snap
+        run: sudo snap install --dangerous ./snaps/charmed/${{ needs.build-charmed.outputs.artifact-prefix }}*.snap
 
       - name: Start server
         run: sudo snap start charmed-valkey.server
@@ -120,7 +120,7 @@ jobs:
           merge-multiple: true
 
       - name: Install snap
-        run: sudo snap install --dangerous ${{ needs.build-slim.outputs.artifact-prefix }}*.snap
+        run: sudo snap install --dangerous ./snaps/slim/${{ needs.build-slim.outputs.artifact-prefix }}*.snap
 
       - name: Wait for server
         run: |
@@ -154,7 +154,7 @@ jobs:
           merge-multiple: true
 
       - name: Install snap
-        run: sudo snap install --dangerous ${{ needs.build-standard.outputs.artifact-prefix }}*.snap
+        run: sudo snap install --dangerous ./snaps/standard/${{ needs.build-standard.outputs.artifact-prefix }}*.snap
 
       - name: Start server
         run: sudo snap start valkey.server
