@@ -1,0 +1,161 @@
+# Copyright 2026 Canonical Ltd.
+# See LICENSE file for licensing details.
+name: Build and test snaps
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+
+jobs:
+  # ── Build jobs (run in parallel) ──────────────────────────────────────────
+
+  build-charmed:
+    name: Build charmed snap
+    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v40.0.2
+    with:
+      snapcraft-directory: snaps/charmed
+
+  build-slim:
+    name: Build slim snap
+    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v40.0.2
+    with:
+      snapcraft-directory: snaps/slim
+
+  build-standard:
+    name: Build standard snap
+    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v40.0.2
+    with:
+      snapcraft-directory: snaps/standard
+
+  # ── Test jobs (each waits only for its own build) ─────────────────────────
+
+  test-charmed:
+    name: Test charmed snap
+    runs-on: ubuntu-latest
+    needs: build-charmed
+    steps:
+      - uses: actions/checkout@v4
+
+      # Required until core26 reaches stable channel
+      - name: Install core26
+        run: sudo snap install core26 --edge
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ needs.build-charmed.outputs.artifact-prefix }}-*
+          merge-multiple: true
+
+      - name: Install snap
+        run: sudo snap install --dangerous charmed-valkey*.snap
+
+      - name: Start server
+        run: sudo snap start charmed-valkey.server
+
+      - name: Wait for server
+        run: |
+          retry=0
+          until charmed-valkey.cli ping 2>/dev/null | grep -q PONG; do
+            retry=$((retry + 1))
+            if [ $retry -ge 30 ]; then
+              echo "Valkey server did not become ready in time"
+              sudo snap logs charmed-valkey.server || true
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Test CLI
+        run: charmed-valkey.cli info
+
+      - name: Start sentinel
+        run: sudo snap start charmed-valkey.sentinel
+
+      - name: Wait for sentinel
+        run: |
+          retry=0
+          until charmed-valkey.cli -p 26379 sentinel masters 2>/dev/null; do
+            retry=$((retry + 1))
+            if [ $retry -ge 30 ]; then
+              echo "Valkey sentinel did not become ready in time"
+              sudo snap logs charmed-valkey.sentinel || true
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Test sentinel
+        run: charmed-valkey.cli -p 26379 sentinel masters
+
+  test-slim:
+    name: Test slim snap
+    runs-on: ubuntu-latest
+    needs: build-slim
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install core26
+        run: sudo snap install core26 --edge
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ needs.build-slim.outputs.artifact-prefix }}-*
+          merge-multiple: true
+
+      - name: Install snap
+        run: sudo snap install --dangerous valkey-slim*.snap
+
+      - name: Wait for server
+        run: |
+          retry=0
+          until valkey-slim.cli ping 2>/dev/null | grep -q PONG; do
+            retry=$((retry + 1))
+            if [ $retry -ge 30 ]; then
+              echo "Valkey server did not become ready in time"
+              sudo snap logs valkey-slim.server || true
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Test CLI
+        run: valkey-slim.cli info
+
+  test-standard:
+    name: Test standard snap
+    runs-on: ubuntu-latest
+    needs: build-standard
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install core26
+        run: sudo snap install core26 --edge
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ needs.build-standard.outputs.artifact-prefix }}-*
+          merge-multiple: true
+
+      - name: Install snap
+        run: sudo snap install --dangerous valkey*.snap
+
+      - name: Start server
+        run: sudo snap start valkey.server
+
+      - name: Wait for server
+        run: |
+          retry=0
+          until valkey.cli ping 2>/dev/null | grep -q PONG; do
+            retry=$((retry + 1))
+            if [ $retry -ge 30 ]; then
+              echo "Valkey server did not become ready in time"
+              sudo snap logs valkey.server || true
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Test CLI
+        run: valkey.cli info
