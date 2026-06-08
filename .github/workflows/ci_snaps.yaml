@@ -19,19 +19,19 @@ jobs:
     name: Build charmed snap
     uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v40.0.2
     with:
-      snapcraft-directory: snaps/charmed
+      path-to-snap-project-directory: snaps/charmed
 
   build-slim:
     name: Build slim snap
     uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v40.0.2
     with:
-      snapcraft-directory: snaps/slim
+      path-to-snap-project-directory: snaps/slim
 
   build-standard:
     name: Build standard snap
     uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v40.0.2
     with:
-      snapcraft-directory: snaps/standard
+      path-to-snap-project-directory: snaps/standard
 
   # ── Test jobs (each waits only for its own build) ─────────────────────────
 
