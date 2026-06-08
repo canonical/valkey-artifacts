@@ -8,6 +8,9 @@ concurrency:
 
 on:
   pull_request:
+    branches:
+      - 9.0-26.04
+  workflow_dispatch:
 
 jobs:
   # ── Build jobs (run in parallel) ──────────────────────────────────────────
