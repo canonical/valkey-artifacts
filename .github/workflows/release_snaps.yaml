@@ -1,0 +1,84 @@
+# Copyright 2026 Canonical Ltd.
+# See LICENSE file for licensing details.
+name: Release snaps
+
+on:
+  push:
+    branches:
+      - "[0-9].[0-9]-[0-9][0-9].[0-9][0-9]"
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  # ── Build jobs (run in parallel) ──────────────────────────────────────────
+
+  build-charmed:
+    name: Build charmed snap
+    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v49.0.2
+    permissions:
+      actions: read
+      contents: read
+    with:
+      path-to-snap-project-directory: snaps/charmed
+      artifact-prefix: charmed-valkey
+
+  build-chiseled:
+    name: Build chiseled snap
+    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v49.0.2
+    permissions:
+      actions: read
+      contents: read
+    with:
+      path-to-snap-project-directory: snaps/chiseled
+      artifact-prefix: chiseled-valkey
+
+  build-standard:
+    name: Build standard snap
+    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v49.0.2
+    permissions:
+      actions: read
+      contents: read
+    with:
+      path-to-snap-project-directory: snaps/standard
+      artifact-prefix: standard-valkey
+
+  # ── Publish jobs (each waits only for its own build) ──────────────────────
+
+  publish-charmed:
+    name: Publish charmed snap
+    needs: build-charmed
+    uses: canonical/data-platform-workflows/.github/workflows/release_snap.yaml@v49.0.2
+    with:
+      channel: 9/edge
+      artifact-prefix: ${{ needs.build-charmed.outputs.artifact-prefix }}
+    secrets:
+      snap-store-token: ${{ secrets.STORE_LOGIN }}
+    permissions:
+      actions: read
+      contents: write
+
+  publish-chiseled:
+    name: Publish chiseled snap
+    needs: build-chiseled
+    uses: canonical/data-platform-workflows/.github/workflows/release_snap.yaml@v49.0.2
+    with:
+      channel: 9/edge
+      artifact-prefix: ${{ needs.build-chiseled.outputs.artifact-prefix }}
+    secrets:
+      snap-store-token: ${{ secrets.STORE_LOGIN }}
+    permissions:
+      actions: read
+      contents: write
+
+  publish-standard:
+    name: Publish standard snap
+    needs: build-standard
+    uses: canonical/data-platform-workflows/.github/workflows/release_snap.yaml@v49.0.2
+    with:
+      channel: 9/edge
+      artifact-prefix: ${{ needs.build-standard.outputs.artifact-prefix }}
+    secrets:
+      snap-store-token: ${{ secrets.STORE_LOGIN }}
+    permissions:
+      actions: read
+      contents: write

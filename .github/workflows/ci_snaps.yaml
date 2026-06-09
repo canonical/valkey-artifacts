@@ -25,15 +25,15 @@ jobs:
       path-to-snap-project-directory: snaps/charmed
       artifact-prefix: charmed-valkey
 
-  build-slim:
-    name: Build slim snap
+  build-chiseled:
+    name: Build chiseled snap
     uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v49.0.2
     permissions:
       actions: read
       contents: read
     with:
-      path-to-snap-project-directory: snaps/slim
-      artifact-prefix: valkey-slim
+      path-to-snap-project-directory: snaps/chiseled
+      artifact-prefix: chiseled-valkey
 
   build-standard:
     name: Build standard snap
@@ -43,7 +43,7 @@ jobs:
       contents: read
     with:
       path-to-snap-project-directory: snaps/standard
-      artifact-prefix: valkey-standard
+      artifact-prefix: standard-valkey
 
   # ── Test jobs (each waits only for its own build) ─────────────────────────
 
@@ -104,10 +104,10 @@ jobs:
       - name: Test sentinel
         run: charmed-valkey.cli -p 26379 sentinel masters
 
-  test-slim:
-    name: Test slim snap
+  test-chiseled:
+    name: Test chiseled snap
     runs-on: ubuntu-latest
-    needs: build-slim
+    needs: build-chiseled
     steps:
       - uses: actions/checkout@v4
 
@@ -116,27 +116,27 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          pattern: ${{ needs.build-slim.outputs.artifact-prefix }}-*
+          pattern: ${{ needs.build-chiseled.outputs.artifact-prefix }}-*
           merge-multiple: true
 
       - name: Install snap
-        run: sudo snap install --dangerous ./snaps/slim/valkey-slim*.snap
+        run: sudo snap install --dangerous ./snaps/chiseled/chiseled-valkey*.snap
 
       - name: Wait for server
         run: |
           retry=0
-          until valkey-slim.cli ping 2>/dev/null | grep -q PONG; do
+          until chiseled-valkey.cli ping 2>/dev/null | grep -q PONG; do
             retry=$((retry + 1))
             if [ $retry -ge 30 ]; then
               echo "Valkey server did not become ready in time"
-              sudo snap logs valkey-slim.server || true
+              sudo snap logs chiseled-valkey.server || true
               exit 1
             fi
             sleep 1
           done
 
       - name: Test CLI
-        run: valkey-slim.cli info
+        run: chiseled-valkey.cli info
 
   test-standard:
     name: Test standard snap
