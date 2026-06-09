@@ -47,9 +47,9 @@ jobs:
   publish-charmed:
     name: Publish charmed snap
     needs: build-charmed
-    uses: canonical/data-platform-workflows/.github/workflows/release_snap.yaml@v49.0.2
+    uses: canonical/data-platform-workflows/.github/workflows/release_snap_pr.yaml@v49.0.2
     with:
-      channel: 9/edge
+      track: 9/edge
       artifact-prefix: ${{ needs.build-charmed.outputs.artifact-prefix }}
     secrets:
       snap-store-token: ${{ secrets.STORE_LOGIN }}
@@ -60,9 +60,9 @@ jobs:
   publish-chiseled:
     name: Publish chiseled snap
     needs: build-chiseled
-    uses: canonical/data-platform-workflows/.github/workflows/release_snap.yaml@v49.0.2
+    uses: canonical/data-platform-workflows/.github/workflows/release_snap_pr.yaml@v49.0.2
     with:
-      channel: 9/edge
+      track: 9/edge
       artifact-prefix: ${{ needs.build-chiseled.outputs.artifact-prefix }}
     secrets:
       snap-store-token: ${{ secrets.STORE_LOGIN }}
@@ -73,9 +73,9 @@ jobs:
   publish-standard:
     name: Publish standard snap
     needs: build-standard
-    uses: canonical/data-platform-workflows/.github/workflows/release_snap.yaml@v49.0.2
+    uses: canonical/data-platform-workflows/.github/workflows/release_snap_pr.yaml@v49.0.2
     with:
-      channel: 9/edge
+      track: 9/edge
       artifact-prefix: ${{ needs.build-standard.outputs.artifact-prefix }}
     secrets:
       snap-store-token: ${{ secrets.STORE_LOGIN }}
