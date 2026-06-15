@@ -13,44 +13,36 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ── Build jobs (run in parallel) ──────────────────────────────────────────
+  # ── Discover snaps ────────────────────────────────────────────────────────
 
-  build-charmed:
-    name: Build charmed snap
+  discover-snaps:
+    uses: ./.github/workflows/snaps-discover.yaml
+
+  # ── Build jobs (matrix over discovered snaps) ─────────────────────────────
+
+  build:
+    name: Build ${{ matrix.snap.name }} snap
+    needs: discover-snaps
+    strategy:
+      matrix:
+        snap: ${{ fromJson(needs.discover-snaps.outputs.snaps) }}
     uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v49.0.2
     permissions:
       actions: read
       contents: read
     with:
-      path-to-snap-project-directory: snaps/charmed
-      artifact-prefix: charmed-valkey
+      path-to-snap-project-directory: ${{ matrix.snap.path }}
+      artifact-prefix: ${{ matrix.snap.name }}-valkey
 
-  build-chiseled:
-    name: Build chiseled snap
-    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v49.0.2
-    permissions:
-      actions: read
-      contents: read
-    with:
-      path-to-snap-project-directory: snaps/chiseled
-      artifact-prefix: chiseled-valkey
+  # ── Test job (matrix over discovered snaps) ───────────────────────────────
 
-  build-standard:
-    name: Build standard snap
-    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v49.0.2
-    permissions:
-      actions: read
-      contents: read
-    with:
-      path-to-snap-project-directory: snaps/standard
-      artifact-prefix: standard-valkey
-
-  # ── Test jobs (each waits only for its own build) ─────────────────────────
-
-  test-charmed:
-    name: Test charmed snap
+  test:
+    name: Test ${{ matrix.snap.name }} snap
     runs-on: ubuntu-latest
-    needs: build-charmed
+    needs: [discover-snaps, build]
+    strategy:
+      matrix:
+        snap: ${{ fromJson(needs.discover-snaps.outputs.snaps) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -60,117 +52,55 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          pattern: ${{ needs.build-charmed.outputs.artifact-prefix }}-*
+          pattern: ${{ matrix.snap.name }}-valkey-*
           merge-multiple: true
 
       - name: Install snap
-        run: sudo snap install --dangerous ./snaps/charmed/charmed-valkey*.snap
-
-      - name: Start server
-        run: sudo snap start charmed-valkey.server
-
-      - name: Wait for server
         run: |
+          snap_name=$(grep '^name:' "${{ matrix.snap.path }}/snap/snapcraft.yaml" | awk '{print $2}')
+          sudo snap install --dangerous "${{ matrix.snap.path }}/${snap_name}"*.snap
+
+      - name: Test server
+        run: |
+          snap_name=$(grep '^name:' "${{ matrix.snap.path }}/snap/snapcraft.yaml" | awk '{print $2}')
+
+          if snap services "${snap_name}.server" | grep -q inactive; then
+            sudo snap start "${snap_name}.server"
+          fi
+
           retry=0
-          until charmed-valkey.cli ping 2>/dev/null | grep -q PONG; do
+          until "${snap_name}.cli" ping 2>/dev/null | grep -q PONG; do
             retry=$((retry + 1))
             if [ $retry -ge 30 ]; then
               echo "Valkey server did not become ready in time"
-              sudo snap logs charmed-valkey.server || true
+              sudo snap logs "${snap_name}.server" || true
               exit 1
             fi
             sleep 1
           done
 
-      - name: Test CLI
-        run: charmed-valkey.cli info
+          "${snap_name}.cli" info
 
-      - name: Start sentinel
-        run: sudo snap start charmed-valkey.sentinel
-
-      - name: Wait for sentinel
+      - name: Test sentinel
         run: |
+          snap_name=$(grep '^name:' "${{ matrix.snap.path }}/snap/snapcraft.yaml" | awk '{print $2}')
+
+          if ! snap services "${snap_name}.sentinel" 2>/dev/null | grep -q inactive; then
+            echo "No sentinel service, skipping"
+            exit 0
+          fi
+
+          sudo snap start "${snap_name}.sentinel"
+
           retry=0
-          until charmed-valkey.cli -p 26379 sentinel masters 2>/dev/null; do
+          until "${snap_name}.cli" -p 26379 sentinel masters 2>/dev/null; do
             retry=$((retry + 1))
             if [ $retry -ge 30 ]; then
               echo "Valkey sentinel did not become ready in time"
-              sudo snap logs charmed-valkey.sentinel || true
+              sudo snap logs "${snap_name}.sentinel" || true
               exit 1
             fi
             sleep 1
           done
 
-      - name: Test sentinel
-        run: charmed-valkey.cli -p 26379 sentinel masters
-
-  test-chiseled:
-    name: Test chiseled snap
-    runs-on: ubuntu-latest
-    needs: build-chiseled
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install core26
-        run: sudo snap install core26 --edge
-
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: ${{ needs.build-chiseled.outputs.artifact-prefix }}-*
-          merge-multiple: true
-
-      - name: Install snap
-        run: sudo snap install --dangerous ./snaps/chiseled/chiseled-valkey*.snap
-
-      - name: Wait for server
-        run: |
-          retry=0
-          until chiseled-valkey.cli ping 2>/dev/null | grep -q PONG; do
-            retry=$((retry + 1))
-            if [ $retry -ge 30 ]; then
-              echo "Valkey server did not become ready in time"
-              sudo snap logs chiseled-valkey.server || true
-              exit 1
-            fi
-            sleep 1
-          done
-
-      - name: Test CLI
-        run: chiseled-valkey.cli info
-
-  test-standard:
-    name: Test standard snap
-    runs-on: ubuntu-latest
-    needs: build-standard
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install core26
-        run: sudo snap install core26 --edge
-
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: ${{ needs.build-standard.outputs.artifact-prefix }}-*
-          merge-multiple: true
-
-      - name: Install snap
-        run: sudo snap install --dangerous ./snaps/standard/valkey*.snap
-
-      - name: Start server
-        run: sudo snap start valkey.server
-
-      - name: Wait for server
-        run: |
-          retry=0
-          until valkey.cli ping 2>/dev/null | grep -q PONG; do
-            retry=$((retry + 1))
-            if [ $retry -ge 30 ]; then
-              echo "Valkey server did not become ready in time"
-              sudo snap logs valkey.server || true
-              exit 1
-            fi
-            sleep 1
-          done
-
-      - name: Test CLI
-        run: valkey.cli info
+          "${snap_name}.cli" -p 26379 sentinel masters
