@@ -13,6 +13,20 @@ on:
   workflow_dispatch:
 
 jobs:
+  # ── YAML lint ─────────────────────────────────────────────────────────────
+
+  yaml-lint:
+    name: YAML lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Run yamllint
+        run: yamllint --no-warnings ./snaps/
+
   # ── Discover snaps ────────────────────────────────────────────────────────
 
   discover-snaps:
