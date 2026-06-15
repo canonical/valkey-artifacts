@@ -1,7 +1,7 @@
 name: charmed-valkey
 base: core26
 build-base: devel # can be removed once 26.04 was released to `stable`
-version: "9.0.4"
+version: "9.0.3"
 summary: "Valkey: open source, in memory datastore as a snap"
 description: |
   A flexible distributed key-value database that is optimized
@@ -75,21 +75,16 @@ apps:
 
 parts:
   valkey:
-    plugin: make
-    source: https://git.launchpad.net/valkey
-    source-type: git
-    source-tag: lp-9.0.4
-    override-build: |
-      mkdir -p ${SNAPCRAFT_PART_INSTALL}/usr
-      mkdir -p ${SNAPCRAFT_PART_INSTALL}/etc
-      make BUILD_TLS=yes
-      PREFIX=${SNAPCRAFT_PART_INSTALL}/usr make BUILD_TLS=yes install
-      cp valkey.conf ${SNAPCRAFT_PART_INSTALL}/etc/
-      cp sentinel.conf ${SNAPCRAFT_PART_INSTALL}/etc/
-    build-packages:
-      - libssl-dev
+    plugin: nil
     stage-packages:
+      - valkey-server
+      - valkey-tools
+      - valkey-sentinel
       - util-linux
+    override-build: |
+      craftctl default
+      cp ${CRAFT_PART_INSTALL}/etc/valkey/valkey.conf ${CRAFT_PART_INSTALL}/etc/valkey.conf
+      cp ${CRAFT_PART_INSTALL}/etc/valkey/sentinel.conf ${CRAFT_PART_INSTALL}/etc/sentinel.conf
 
   wrapper:
     plugin: dump
