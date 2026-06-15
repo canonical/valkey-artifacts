@@ -83,8 +83,10 @@ parts:
       - util-linux
     override-build: |
       craftctl default
-      cp ${CRAFT_PART_INSTALL}/etc/valkey/valkey.conf ${CRAFT_PART_INSTALL}/etc/valkey.conf
-      cp ${CRAFT_PART_INSTALL}/etc/valkey/sentinel.conf ${CRAFT_PART_INSTALL}/etc/sentinel.conf
+      cp ${CRAFT_PART_INSTALL}/etc/valkey/valkey.conf \
+        ${CRAFT_PART_INSTALL}/etc/valkey.conf
+      cp ${CRAFT_PART_INSTALL}/etc/valkey/sentinel.conf \
+        ${CRAFT_PART_INSTALL}/etc/sentinel.conf
 
   wrapper:
     plugin: dump
