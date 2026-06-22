@@ -1,0 +1,81 @@
+# Copyright 2026 Canonical Ltd.
+# See LICENSE file for licensing details.
+name: Publish artifacts
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - "[0-9].[0-9]-[0-9][0-9].[0-9][0-9]"
+  workflow_dispatch:
+
+env:
+  # Store channel the rocks stage their snaps from.
+  CHANNEL: 9/edge
+
+jobs:
+  discover-rocks:
+    uses: ./.github/workflows/rocks-discover.yaml
+
+  discover-snaps:
+    uses: ./.github/workflows/snaps-discover.yaml
+
+  # 1. Record current snap revisions before publishing so the wait step can
+  #    detect when the new revision has propagated for each rock-backed snap.
+  current-snap-revisions:
+    name: Snapshot current snap revisions
+    needs:
+      - discover-rocks
+      - discover-snaps
+    runs-on: ubuntu-latest
+    outputs:
+      current-revisions: ${{ steps.current-revisions.outputs.current-revisions }}
+    env:
+      ROCKS: ${{ needs.discover-rocks.outputs.rocks }}
+      SNAPS: ${{ needs.discover-snaps.outputs.snaps }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - id: current-revisions
+        run: .github/scripts/current-snap-revisions.sh
+
+  # 2. Build and publish all snaps.
+  publish-snaps:
+    name: Publish snaps
+    needs: current-snap-revisions
+    uses: ./.github/workflows/release_snaps.yaml
+    secrets: inherit
+    permissions:
+      actions: read
+      contents: write
+
+  # 3. Wait until every snap that backs a rock has a newer revision live on
+  #    the channel for every architecture the rocks are built for.
+  wait-for-snap-revision:
+    name: Wait for new snap revisions
+    needs:
+      - current-snap-revisions
+      - publish-snaps
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CURRENT_REVISIONS: ${{ needs.current-snap-revisions.outputs.current-revisions }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Poll store until newer revisions appear
+        run: .github/scripts/wait-for-snap-revisions.sh
+
+  # 4. Build, test, scan and publish the rocks.
+  publish-rocks:
+    name: Build, test and publish rocks
+    needs: wait-for-snap-revision
+    uses: ./.github/workflows/rocks-publish.yaml
+    secrets: inherit
+    permissions:
+      actions: read
+      packages: write
+      contents: write

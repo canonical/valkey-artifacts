@@ -2,7 +2,8 @@
 # See LICENSE file for licensing details.
 
 # Build and test rocks against snaps published from a pull request.
-# Each rock is retargeted to the PR snap channel and tested on amd64 and arm64.
+# Each rock is retargeted to the PR snap channel, tested on amd64 and arm64,
+# uploaded as a packed-rock artifact, and scanned by Trivy before the workflow passes.
 
 name: Rock tests on PR
 
@@ -55,23 +56,23 @@ jobs:
           runner: ${{ matrix.runner.label }}
 
       # The spread test builds the rock and we upload the artifact
-      # - name: Upload rock for Trivy
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: packed-rock-${{ matrix.rock.name }}--platform-${{ matrix.runner.platform }}
-      #     path: ${{ matrix.rock.path }}/*.rock
-      #     if-no-files-found: error
+      - name: Upload rock for Trivy
+        uses: actions/upload-artifact@v4
+        with:
+          name: packed-rock-${{ matrix.rock.name }}--platform-${{ matrix.runner.platform }}
+          path: ${{ matrix.rock.path }}/*.rock
+          if-no-files-found: error
 
-  # scan-rocks:
-  #   name: Trivy scan
-  #   needs:
-  #     - discover-rocks
-  #     - test-rocks
-  #   uses: ./.github/workflows/rocks-scan.yaml
-  #   with:
-  #     rocks: ${{ needs.discover-rocks.outputs.rocks }}
-  #   secrets: inherit
-  #   permissions:
-  #     actions: read
-  #     contents: read
-  #     security-events: write
+  scan-rocks:
+    name: Trivy scan
+    needs:
+      - discover-rocks
+      - test-rocks
+    uses: ./.github/workflows/rocks-scan.yaml
+    with:
+      rocks: ${{ needs.discover-rocks.outputs.rocks }}
+    secrets: inherit
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
