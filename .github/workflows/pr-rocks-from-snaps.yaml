@@ -8,6 +8,8 @@ concurrency:
 
 on:
   pull_request:
+  # TODO for debugging purposes, remove when done
+  workflow_call:
 
 jobs:
   publish-pr-snaps:
