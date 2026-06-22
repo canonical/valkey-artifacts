@@ -39,7 +39,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          pattern: ${{ matrix.snap.name }}-valkey-*
+          pattern: ${{ matrix.snap.name }}-*
           merge-multiple: true
 
       - name: Install snap
