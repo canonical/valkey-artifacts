@@ -29,8 +29,9 @@ services:
 parts:
   valkey:
     plugin: nil
+    stage-snaps:
+      - chiseled-valkey/9/edge
     stage-packages:
-      - valkey-server
       - openssl
   valkey-user:
     plugin: nil
