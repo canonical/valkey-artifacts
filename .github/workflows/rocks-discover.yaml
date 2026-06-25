@@ -11,7 +11,7 @@ on:
 
 jobs:
   discover-rocks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       rocks: ${{ steps.discover.outputs.rocks }}
     steps:
@@ -20,10 +20,12 @@ jobs:
       - id: discover
         run: |
           rocks=$(
-            find . -path '*/rocks/*/rockcraft.yaml' \
-              | sed 's#/rockcraft.yaml##' \
-              | jq -R '{path: ., name: (split("/")[-1])}' \
-              | jq -cs .
+            while IFS= read -r yaml; do
+              dir="${yaml%/rockcraft.yaml}"
+              name=$(yq '.name' "$yaml")
+              printf '{"path":"%s","name":"%s"}\n' "$dir" "$name"
+            done < <(find . -path '*/rocks/*/rockcraft.yaml') \
+            | jq -cs .
           )
 
           echo "rocks=$rocks" >> "$GITHUB_OUTPUT"
