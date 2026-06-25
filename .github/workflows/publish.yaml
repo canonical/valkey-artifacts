@@ -9,7 +9,7 @@ concurrency:
 on:
   push:
     branches:
-      - "[0-9].[0-9]-[0-9][0-9].[0-9][0-9]"
+      - 9/edge
   workflow_dispatch:
 
 env:
@@ -46,7 +46,7 @@ jobs:
   publish-snaps:
     name: Publish snaps
     needs: current-snap-revisions
-    uses: ./.github/workflows/release_snaps.yaml
+    uses: ./.github/workflows/snaps-publish.yaml
     secrets: inherit
     permissions:
       actions: read
