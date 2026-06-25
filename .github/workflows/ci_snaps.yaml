@@ -9,7 +9,7 @@ concurrency:
 on:
   pull_request:
     branches:
-      - 9.0-26.04
+      - 9/edge
   workflow_dispatch:
 
 jobs:
