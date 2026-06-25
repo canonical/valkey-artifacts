@@ -32,7 +32,8 @@ for i in $(seq 1 60); do
       "https://api.snapcraft.io/v2/snaps/info/${snap}" \
       | jq -c '[.["channel-map"][]?
                  | select(.channel.name == "'"$CHANNEL"'")
-                 | {(.channel.architecture): .revision}] | add // {}')
+                 | {(.channel.architecture): .revision}] | add // {}') || current='{}'
+    [ -n "$current" ] || current='{}'
 
     snap_status=""
     pending_archs=$(awk -v snap="$snap" '$1 == snap {print $2}' <<<"$pending")
