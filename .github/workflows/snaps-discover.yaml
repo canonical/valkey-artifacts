@@ -11,7 +11,7 @@ on:
 
 jobs:
   discover-snaps:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       snaps: ${{ steps.discover.outputs.snaps }}
     steps:
@@ -20,10 +20,12 @@ jobs:
       - id: discover
         run: |
           snaps=$(
-            find . -path '*/snap/snapcraft.yaml' \
-              | sed 's#/snap/snapcraft.yaml##' \
-              | jq -R '{path: ., name: (split("/")[-1])}' \
-              | jq -cs .
+            while IFS= read -r yaml; do
+              dir="${yaml%/snap/snapcraft.yaml}"
+              name=$(yq '.name' "$yaml")
+              printf '{"path":"%s","name":"%s"}\n' "$dir" "$name"
+            done < <(find . -path '*/snap/snapcraft.yaml') \
+            | jq -cs .
           )
 
           echo "snaps=$snaps" >> "$GITHUB_OUTPUT"
