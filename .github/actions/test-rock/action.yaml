@@ -25,9 +25,9 @@ runs:
     - name: Set up LXD
       uses: canonical/setup-lxd@v0.1.2
 
-    - name: Add user to lxd group
+    - name: Allow runner to use LXD
       shell: bash
-      run: sudo usermod -aG lxd "$USER"
+      run: sudo usermod --append --groups lxd "$USER"
 
     # `rockcraft test` packs the rock and runs the spread suites against it.
     # Fail if no spread.yaml is found.

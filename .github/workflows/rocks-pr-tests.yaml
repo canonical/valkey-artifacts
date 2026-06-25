@@ -28,18 +28,15 @@ jobs:
       matrix:
         rock: ${{ fromJSON(needs.discover-rocks.outputs.rocks) }}
         runner:
-          - label: ubuntu-24.04 # amd64
+          - label: ubuntu-26.04 # amd64
             platform: amd64
-          - label: ubuntu-24.04-arm # arm64
+          - label: ubuntu-26.04-arm # arm64
             platform: arm64
     permissions:
       actions: read
       contents: read
     steps:
       - uses: actions/checkout@v6
-
-      - name: Install yq
-        run: sudo snap install yq
 
       - name: Point rock stage snaps at PR branch
         env:
