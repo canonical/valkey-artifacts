@@ -8,9 +8,9 @@ version: "9.0.3"
 summary: Charmed Valkey ROCK OCI
 description: |
   This is an OCI image that bundles Valkey together with the metrics exporter
-  in order to be used in Operators, providing automated operations 
-  management from day 0 to day 2 on Valkey, on top of a Virtual Machine cluster 
-  and K8s cluster. It is an open source, end-to-end, production ready data 
+  in order to be used in Operators, providing automated operations
+  management from day 0 to day 2 on Valkey, on top of a Virtual Machine cluster
+  and K8s cluster. It is an open source, end-to-end, production ready data
   platform on top of cloud native technologies.
 license: Apache-2.0
 platforms:
@@ -36,7 +36,8 @@ package-repositories:
     components: [main]
     suites: [resolute]
     key-id: 6676E3F1A76ADBE4488944BF7D1A96D4BF78C79E
-    url: https://ppa.launchpadcontent.net/data-platform/prometheus-redis-exporter/ubuntu
+    url: >-
+      https://ppa.launchpadcontent.net/data-platform/prometheus-redis-exporter/ubuntu
 
 parts:
   valkey:
