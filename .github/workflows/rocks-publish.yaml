@@ -22,7 +22,7 @@ jobs:
       path-to-rock-directory: ${{ matrix.rock.path }}
       artifact-prefix: packed-rock-${{ matrix.rock.name }}
     permissions:
-      actions: read
+      actions: read # Needed for GitHub API call to get workflow version
       contents: read
 
   test:
@@ -36,8 +36,8 @@ jobs:
       matrix:
         rock: ${{ fromJSON(needs.discover-rocks.outputs.rocks) }}
         runner:
-          - ubuntu-24.04      # amd64
-          - ubuntu-24.04-arm  # arm64
+          - ubuntu-26.04 # amd64
+          - ubuntu-26.04-arm # arm64
     permissions:
       actions: read
       contents: read
@@ -51,6 +51,7 @@ jobs:
           rock-path: ${{ matrix.rock.path }}
           runner: ${{ matrix.runner }}
 
+  # The build job already uploaded the artifact so we can use it for the trivy scan
   scan:
     name: Trivy scan
     needs:
@@ -68,7 +69,7 @@ jobs:
       security-events: write
 
   publish:
-    name: Publish rock | ${{ matrix.rock.name }}
+    name: Publish rock  | ${{ matrix.rock.name }}
     needs:
       - discover-rocks
       - build
@@ -83,6 +84,6 @@ jobs:
       path-to-rock-directory: ${{ matrix.rock.path }}
       artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
     permissions:
-      actions: read
-      packages: write
-      contents: write
+      actions: read # Needed for GitHub API call to get workflow version
+      packages: write # Needed to publish to GitHub Container Registry
+      contents: write # Needed to create git tags
