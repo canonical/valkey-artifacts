@@ -29,7 +29,7 @@ parts:
   valkey:
     plugin: nil
     stage-snaps:
-      - valkey/9/edge
+      - valkey/9.0/edge
     stage-packages:
       - openssl
   valkey-user:
