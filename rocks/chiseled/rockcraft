@@ -38,6 +38,20 @@ parts:
     plugin: nil
     after:
       - valkey
+    override-stage: |
+      craftctl default
+      # stay under 80 chars
+      lib_path="${CRAFT_STAGE}/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}"
+      lib_path="${lib_path}:${CRAFT_STAGE}/usr/lib"
+      actual=$(LD_LIBRARY_PATH="${lib_path}" \
+        "${CRAFT_STAGE}/usr/bin/valkey-server" --version \
+        | grep -oP '(?<=v=)[0-9.]+')
+      if [ "$actual" != "$CRAFT_PROJECT_VERSION" ]; then
+        echo "ERROR: binary version ($actual) does not match" \
+          "declared version ($CRAFT_PROJECT_VERSION)"
+        exit 1
+      fi
+      echo "Version check passed: $actual"
     override-prime: |
       mkdir -p $CRAFT_PRIME/var/lib/valkey
       chown -R 584792:584792 $CRAFT_PRIME/var/lib/valkey
