@@ -1,0 +1,43 @@
+# Copyright 2024 Canonical Ltd.
+# See LICENSE-rock file for licensing details.
+---
+name: chiseled-valkey
+base: ubuntu@26.04
+build-base: devel # to be removed once 26.04 is released to stable
+version: "9.0.3"
+summary: Valkey ROCK OCI
+description: |
+  This is an OCI image that bundles Valkey together with the metrics exporter
+  in order to be used in Operators, providing automated operations 
+  management from day 0 to day 2 on Valkey, on top of a Virtual Machine cluster 
+  and K8s cluster. It is an open source, end-to-end, production ready data 
+  platform on top of cloud native technologies.
+license: Apache-2.0
+platforms:
+  amd64:
+  arm64:
+
+run-user: _daemon_
+
+services:
+  valkey:
+    override: replace
+    startup: enabled
+    summary: Start Valkey
+    command: "valkey-server --dir /var/lib/valkey"
+
+parts:
+  valkey:
+    plugin: nil
+    stage-snaps:
+      - chiseled-valkey/9.0/edge
+    stage-packages:
+      - libatomic1
+      - openssl
+  valkey-user:
+    plugin: nil
+    after:
+      - valkey
+    override-prime: |
+      mkdir -p $CRAFT_PRIME/var/lib/valkey
+      chown -R 584792:584792 $CRAFT_PRIME/var/lib/valkey
