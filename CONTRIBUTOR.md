@@ -29,11 +29,11 @@ build and test matrix — no workflow changes required.
 
 ### Snap variants
 
-| Variant  | Snap name         | Description                                                                                                                                  |
-| -------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| standard | `valkey`          | Full toolset: `server`, `cli`, `benchmark`, `check-aof`, `check-rdb`, `sentinel`                                                             |
-| chiseled | `valkey-chiseled` | Minimal variant built from Ubuntu packages, exposing only `server` and `cli`                                                                 |
-| charmed  | `valkey-charmed`  | Adds `sentinel` wrapper scripts and the `metrics-exporter` app, for use by [Valkey charms](https://github.com/canonical/charmed-valkey-snap) |
+| Variant  | Snap name         | Description                                                                                                                              |
+| -------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| standard | `valkey`          | Full toolset: `server`, `cli`, `benchmark`, `check-aof`, `check-rdb`, `sentinel`                                                         |
+| chiseled | `valkey-chiseled` | Minimal variant built from Ubuntu packages, exposing only `server` and `cli`                                                             |
+| charmed  | `valkey-charmed`  | Adds `sentinel` wrapper scripts and the `metrics-exporter` app, for use by [Valkey charms](https://github.com/canonical/valkey-operator) |
 
 ## Building a snap for development
 
