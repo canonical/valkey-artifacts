@@ -12,35 +12,21 @@ jobs:
   discover-snaps:
     uses: ./.github/workflows/snaps-discover.yaml
 
-  build-snaps:
-    name: Build snap | ${{ matrix.snap.name }}
+  test-snaps:
+    name: Build and test ${{ matrix.snap.name }} snap | ${{ matrix.runner.platform }}
+    runs-on: ${{ matrix.runner.label }}
     needs: discover-snaps
     strategy:
       fail-fast: false
       matrix:
-        snap: ${{ fromJSON(needs.discover-snaps.outputs.snaps) }}
-    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v49.0.2
-    with:
-      path-to-snap-project-directory: ${{ matrix.snap.path }}
-      artifact-prefix: packed-snap-${{ matrix.snap.name }}
-    permissions:
-      actions: read # Needed for GitHub API call to get workflow version
-      contents: read
-
-  test-snaps:
-    name: Test ${{ matrix.snap.name }} snap
-    runs-on: ubuntu-26.04
-    needs: [discover-snaps, build-snaps]
-    strategy:
-      matrix:
         snap: ${{ fromJson(needs.discover-snaps.outputs.snaps) }}
+        runner:
+          - label: ubuntu-26.04 # amd64
+            platform: amd64
+          - label: ubuntu-26.04-arm # arm64
+            platform: arm64
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: "*-${{ matrix.snap.name }}-*"
-          merge-multiple: true
 
       - name: Install snap
         run: |
@@ -53,16 +39,45 @@ jobs:
           sudo iptables -P FORWARD ACCEPT
           sudo snap install snapcraft --classic
 
+      # `snapcraft test` packs the snap and runs the spread suite against it.
       - name: snapcraft test
+        id: test
+        working-directory: ${{ matrix.snap.path }}
+        run: sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- snapcraft test
+
+      - name: Snapcraft logs
+        if: ${{ success() || (failure() && steps.test.outcome == 'failure') }}
+        run: cat ~/.local/state/snapcraft/log/*
+
+      - name: Upload snapcraft logs
+        if: ${{ success() || failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapcraft-test-logs-${{ matrix.snap.name }}--platform-${{ matrix.runner.platform }}
+          path: ~/.local/state/snapcraft/log/*
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # Matches the path-in-artifact naming used by data-platform-workflows'
+      # release_snap_pr.yaml so publish-snaps can find this artifact.
+      - name: Compute path in artifact
+        id: path-in-artifact
         run: |
-          cd ${{ matrix.snap.path }}
-           sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- snapcraft test
+          path="${{ matrix.snap.path }}"
+          path="${path#./}"
+          echo "path=${path//\//-}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload snap package
+        uses: actions/upload-artifact@v4
+        with:
+          name: packed-snap-${{ matrix.snap.name }}-${{ steps.path-in-artifact.outputs.path }}--platform-${{ matrix.runner.platform }}
+          path: ${{ matrix.snap.path }}/*.snap
+          if-no-files-found: error
 
   publish-snaps:
     name: Publish snap to PR branch | ${{ matrix.snap.name }}
     needs:
       - discover-snaps
-      - build-snaps
       - test-snaps
     strategy:
       fail-fast: false
