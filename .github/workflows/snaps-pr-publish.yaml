@@ -29,7 +29,7 @@ jobs:
 
   test-snaps:
     name: Test ${{ matrix.snap.name }} snap
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [discover-snaps, build-snaps]
     strategy:
       matrix:
