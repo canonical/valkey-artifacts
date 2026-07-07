@@ -21,9 +21,9 @@ jobs:
       matrix:
         snap: ${{ fromJson(needs.discover-snaps.outputs.snaps) }}
         runner:
-          - label: ubuntu-26.04 # amd64
+          - label: ubuntu-24.04 # amd64
             platform: amd64
-          - label: ubuntu-26.04-arm # arm64
+          - label: ubuntu-24.04-arm # arm64
             platform: arm64
     steps:
       - uses: actions/checkout@v4
@@ -45,8 +45,6 @@ jobs:
       - name: snapcraft test
         id: test
         working-directory: ${{ matrix.snap.path }}
-        env:
-          SNAPCRAFT_BUILD_ENVIRONMENT: host
         run: sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- snapcraft test --platform "${{ matrix.runner.platform }}"
 
       - name: Snapcraft logs
