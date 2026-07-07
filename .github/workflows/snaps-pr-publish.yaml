@@ -59,6 +59,7 @@ jobs:
 
       # Matches the path-in-artifact naming used by data-platform-workflows'
       # release_snap_pr.yaml so publish-snaps can find this artifact.
+      - run: touch .empty
       - name: Compute path in artifact
         id: path-in-artifact
         run: |
@@ -70,7 +71,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: packed-snap-${{ matrix.snap.name }}-${{ steps.path-in-artifact.outputs.path }}--platform-${{ matrix.runner.platform }}
-          path: ${{ matrix.snap.path }}/*.snap
+          path: |
+            ${{ matrix.snap.path }}/*.snap
+            .empty
+          include-hidden-files: true # For `.empty`
           if-no-files-found: error
 
   publish-snaps:
