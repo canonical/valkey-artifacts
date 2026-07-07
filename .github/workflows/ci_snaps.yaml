@@ -58,7 +58,7 @@ jobs:
       - name: snapcraft test
         run: |
           cd ${{ matrix.snap.path }}
-          snapcraft test
+           sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- snapcraft test
 
       - name: Snapcraft logs
         if: ${{ success() || (failure() && steps.snapcraft_test.outcome == 'failure') }}
