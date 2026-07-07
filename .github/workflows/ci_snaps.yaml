@@ -46,9 +46,20 @@ jobs:
 
       - name: install snapcraft
         run: |
+          sudo snap install lxd
+          sudo adduser "$USER" lxd
+          sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- lxd waitready
+          sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- lxd init --auto
+          # Workaround for Docker & LXD on same machine
+          sudo iptables -F FORWARD
+          sudo iptables -P FORWARD ACCEPT
           sudo snap install snapcraft --classic
 
       - name: snapcraft test
         run: |
           cd ${{ matrix.snap.path }}
           snapcraft test
+
+      - name: Snapcraft logs
+        if: ${{ success() || (failure() && steps.snapcraft_test.outcome == 'failure') }}
+        run: cat ~/.local/state/snapcraft/log/*
