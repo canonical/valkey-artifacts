@@ -1,5 +1,5 @@
-# Chiseled Valkey rock
-[![Build and test rocks](https://github.com/canonical/valkey-artifacts/actions/workflows/ci_rocks.yaml/badge.svg)](https://github.com/canonical/valkey-artifacts/actions/workflows/ci_rocks.yaml)
+# Valkey Chiseled rock
+[![Publish artifacts](https://github.com/canonical/valkey-artifacts/actions/workflows/publish.yaml/badge.svg)](https://github.com/canonical/valkey-artifacts/actions/workflows/publish.yaml)
 
 This directory contains the packaging metadata for creating a chiseled rock image of Valkey. The chiseled variant
 is a minimal OCI image built from Ubuntu packages with no shell or package manager, reducing attack surface. For
@@ -30,10 +30,10 @@ sudo lxd init --auto
 ### Packing and Running the rock
 ```bash
 rockcraft pack
-sudo skopeo --insecure-policy copy oci-archive:chiseled-valkey*.rock docker-daemon:chiseled-valkey:<tag>
-docker run --rm -it chiseled-valkey:<tag>
+sudo skopeo --insecure-policy copy oci-archive:valkey-chiseled*.rock docker-daemon:valkey-chiseled:<tag>
+docker run --rm -it valkey-chiseled:<tag>
 ```
 
 ## License:
-The Chiseled Valkey rock is free software, distributed under the Apache Software License, version 2.0. See licenses for 
+The Valkey Chiseled rock is free software, distributed under the Apache Software License, version 2.0. See licenses for 
 more information.

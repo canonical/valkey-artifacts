@@ -24,10 +24,10 @@ suites:
 
       # Load the rock into docker
       sudo rockcraft.skopeo --insecure-policy copy \
-        "oci-archive:$CRAFT_ARTIFACT" docker-daemon:charmed-valkey:latest
+        "oci-archive:$CRAFT_ARTIFACT" docker-daemon:valkey-charmed:latest
     prepare-each: |
       docker run -d --rm -p 6379:6379 -p 9121:9121 \
-        --name "${SPREAD_TASK//\//_}" charmed-valkey:latest
+        --name "${SPREAD_TASK//\//_}" valkey-charmed:latest
       retry=0
       until docker exec "${SPREAD_TASK//\//_}" \
           valkey-cli ping 2>/dev/null | grep -q PONG; do
@@ -51,7 +51,7 @@ suites:
       done
 
     restore: |
-      docker image rm --force charmed-valkey:latest
+      docker image rm --force valkey-charmed:latest
 
 exclude:
   - .git

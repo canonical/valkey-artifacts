@@ -1,5 +1,5 @@
-# Chiseled Valkey Snap
-[![Build and test snaps](https://github.com/canonical/valkey-artifacts/actions/workflows/ci_snaps.yaml/badge.svg)](https://github.com/canonical/valkey-artifacts/actions/workflows/ci_snaps.yaml)
+# Valkey Chiseled Snap
+[![Publish artifacts](https://github.com/canonical/valkey-artifacts/actions/workflows/publish.yaml/badge.svg)](https://github.com/canonical/valkey-artifacts/actions/workflows/publish.yaml)
 
 This directory contains the packaging metadata for creating a chiseled snap of Valkey. The chiseled variant is a minimal snap built from Ubuntu packages, exposing only the server and CLI commands.
 For more information on snaps, visit [snapcraft.io](https://snapcraft.io/).
@@ -59,7 +59,7 @@ snapcraft test
 ```
 
 ## License
-The Chiseled Valkey Snap is free software, distributed under the Apache
+The Valkey Chiseled Snap is free software, distributed under the Apache
 Software License, version 2.0. See
 [LICENSE](https://github.com/canonical/valkey-artifacts/blob/main/LICENSE)
 for more information.

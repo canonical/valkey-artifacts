@@ -1,5 +1,5 @@
 # Valkey rock
-[![Release to GHCR](https://github.com/canonical/valkey-rock/actions/workflows/release.yaml/badge.svg)](https://github.com/canonical/valkey-rock/actions/workflows/release.yaml)
+[![Publish artifacts](https://github.com/canonical/valkey-artifacts/actions/workflows/publish.yaml/badge.svg)](https://github.com/canonical/valkey-artifacts/actions/workflows/publish.yaml)
 
 This repository contains the packaging metadata for creating a rock image of Valkey. For more information on rocks, 
 visit the [rockcraft Github](https://github.com/canonical/rockcraft).
@@ -10,8 +10,8 @@ If you are using another version of Ubuntu or another operating system, the proc
 
 ### Clone Repository
 ```bash
-git clone git@github.com:canonical/valkey-rock.git
-cd valkey-rock
+git clone git@github.com:canonical/valkey-artifacts.git
+cd valkey-artifacts/rocks/standard
 ```
 ### Installing Prerequisites
 ```bash
