@@ -77,7 +77,7 @@ apps:
       - mount-observe
       - hardware-observe
   metrics-exporter:
-    command: usr/bin/prometheus-redis-exporter
+    command: start_metrics_exporter.sh
     daemon: simple
     install-mode: disable
     restart-condition: always
