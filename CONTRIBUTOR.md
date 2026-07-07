@@ -90,8 +90,7 @@ real `craft` (LXD) backend on `ubuntu-26.04`. To run it locally:
 
 ```bash
 cd snaps/standard   # or chiseled / charmed
-snapcraft pack
-spread craft:
+snapcraft test
 ```
 
 This mirrors what CI does in `ci_snaps.yaml`: it installs the freshly built

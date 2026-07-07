@@ -5,7 +5,7 @@ This repository contains the packaging metadata for creating a snap of Valkey.
 For more information on snaps, visit [snapcraft.io](https://snapcraft.io/). 
 
 ## Installing the Snap
-The snap can be installed directly from the Snap Store.  Follow the link below for more information.
+The snap can be installed directly from the Snap Store. Follow the link below for more information.
 <br>
 
 [![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/valkey-charmed)
@@ -23,6 +23,16 @@ valkey-charmed.cli
 PONG
 ```
 
+In addition to `server` and `cli`, this variant also provides `benchmark`,
+`check-aof`, `check-rdb`, `sentinel` and `metrics-exporter` apps. Both
+`sentinel` and `metrics-exporter` run as daemons and need to be started
+explicitly:
+
+```bash
+sudo snap start valkey-charmed.sentinel
+sudo snap start valkey-charmed.metrics-exporter
+```
+
 Other available commands can be found here: `snap info valkey-charmed`
 
 ## Building the Snap
@@ -33,14 +43,29 @@ cd valkey-artifacts/snaps/charmed
 ```
 ### Installing and Configuring Prerequisites
 ```bash
-sudo snap install snapcraft
+sudo snap install snapcraft --classic
 sudo snap install lxd
 sudo lxd init --auto
 ```
 ### Packing and Installing the Snap
 ```bash
 snapcraft pack
-sudo snap install ./valkey-charmed*.snap --devmode
+sudo snap install ./valkey-charmed*.snap --dangerous
+```
+
+Use `--dangerous` to skip signature verification for a locally built snap.
+`--devmode` is also acceptable while iterating, and additionally relaxes
+confinement so you don't need to connect interfaces manually — but it
+disables confinement checks entirely, so don't use it to validate the final
+`strict` confinement behaviour.
+
+## Testing the Snap
+This variant ships a [spread](https://github.com/canonical/spread) suite
+covering the `smoke`, `sentinel` and `metrics-exporter` apps, run against a
+real `craft` (LXD) backend on `ubuntu-26.04`:
+
+```bash
+snapcraft test
 ```
 
 ## License
