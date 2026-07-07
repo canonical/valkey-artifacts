@@ -34,83 +34,21 @@ jobs:
 
   # ── Build jobs (matrix over discovered snaps) ─────────────────────────────
 
-  build:
-    name: Build ${{ matrix.snap.name }} snap
+  build-and-test:
+    name: Build and test ${{ matrix.snap.name }} snap
+    runs-on: ubuntu-26.04
     needs: discover-snaps
-    strategy:
-      matrix:
-        snap: ${{ fromJson(needs.discover-snaps.outputs.snaps) }}
-    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v49.0.2
-    permissions:
-      actions: read
-      contents: read
-    with:
-      path-to-snap-project-directory: ${{ matrix.snap.path }}
-      artifact-prefix: ${{ matrix.snap.name }}-valkey
-
-  # ── Test job (matrix over discovered snaps) ───────────────────────────────
-
-  test:
-    name: Test ${{ matrix.snap.name }} snap
-    runs-on: ubuntu-latest
-    needs: [discover-snaps, build]
     strategy:
       matrix:
         snap: ${{ fromJson(needs.discover-snaps.outputs.snaps) }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: ${{ matrix.snap.name }}-valkey-*
-          merge-multiple: true
-
-      - name: Install snap
+      - name: install snapcraft
         run: |
-          snap_name=$(grep '^name:' "${{ matrix.snap.path }}/snap/snapcraft.yaml" | awk '{print $2}')
-          sudo snap install --dangerous "${{ matrix.snap.path }}/${snap_name}"*.snap
+          sudo snap install snapcraft --classic
 
-      - name: Test server
+      - name: snapcraft test
         run: |
-          snap_name=$(grep '^name:' "${{ matrix.snap.path }}/snap/snapcraft.yaml" | awk '{print $2}')
-
-          if snap services "${snap_name}.server" | grep -q inactive; then
-            sudo snap start "${snap_name}.server"
-          fi
-
-          retry=0
-          until "${snap_name}.cli" ping 2>/dev/null | grep -q PONG; do
-            retry=$((retry + 1))
-            if [ $retry -ge 30 ]; then
-              echo "Valkey server did not become ready in time"
-              sudo snap logs "${snap_name}.server" || true
-              exit 1
-            fi
-            sleep 1
-          done
-
-          "${snap_name}.cli" info
-
-      - name: Test sentinel
-        run: |
-          snap_name=$(grep '^name:' "${{ matrix.snap.path }}/snap/snapcraft.yaml" | awk '{print $2}')
-
-          if ! snap services "${snap_name}.sentinel" 2>/dev/null | grep -q inactive; then
-            echo "No sentinel service, skipping"
-            exit 0
-          fi
-
-          sudo snap start "${snap_name}.sentinel"
-
-          retry=0
-          until "${snap_name}.cli" -p 26379 sentinel masters 2>/dev/null; do
-            retry=$((retry + 1))
-            if [ $retry -ge 30 ]; then
-              echo "Valkey sentinel did not become ready in time"
-              sudo snap logs "${snap_name}.sentinel" || true
-              exit 1
-            fi
-            sleep 1
-          done
-
-          "${snap_name}.cli" -p 26379 sentinel masters
+          cd ${{ matrix.snap.path }}
+          snapcraft test
