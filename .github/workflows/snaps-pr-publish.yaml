@@ -39,12 +39,11 @@ jobs:
           sudo iptables -P FORWARD ACCEPT
           sudo snap install snapcraft --classic
 
-      # `snapcraft test` packs the snap and runs the spread suite against it.
-      # SNAPCRAFT_BUILD_ENVIRONMENT=host keeps snapcraft on this runner instead
-      # of nesting another managed LXD instance for the build+test to run in;
       - name: snapcraft test
         id: test
         working-directory: ${{ matrix.snap.path }}
+        env:
+          CI: 1
         run: sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- snapcraft test --platform "${{ matrix.runner.platform }}"
 
       - name: Snapcraft logs
