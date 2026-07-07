@@ -30,14 +30,6 @@ services:
     summary: Start the Prometheus Redis Exporter
     command: "prometheus-redis-exporter"
 
-package-repositories:
-  - type: apt
-    components: [main]
-    suites: [resolute]
-    key-id: 6676E3F1A76ADBE4488944BF7D1A96D4BF78C79E
-    url: >-
-      https://ppa.launchpadcontent.net/data-platform/prometheus-redis-exporter/ubuntu
-
 parts:
   valkey:
     plugin: nil
@@ -46,7 +38,6 @@ parts:
     stage-packages:
       - libatomic1
       - openssl
-      - prometheus-redis-exporter
   valkey-user:
     plugin: nil
     after:
