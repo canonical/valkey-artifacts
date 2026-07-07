@@ -35,16 +35,22 @@ jobs:
   # ── Build jobs (matrix over discovered snaps) ─────────────────────────────
 
   build-and-test:
-    name: Build and test ${{ matrix.snap.name }} snap
-    runs-on: ubuntu-26.04
+    name: Build and test ${{ matrix.snap.name }} snap | ${{ matrix.runner.platform }}
+    runs-on: ${{ matrix.runner.label }}
     needs: discover-snaps
     strategy:
+      fail-fast: false
       matrix:
         snap: ${{ fromJson(needs.discover-snaps.outputs.snaps) }}
+        runner:
+          - label: ubuntu-26.04 # amd64
+            platform: amd64
+          - label: ubuntu-26.04-arm # arm64
+            platform: arm64
     steps:
       - uses: actions/checkout@v4
 
-      - name: install snapcraft
+      - name: Install snapcraft and LXD
         run: |
           sudo snap install lxd
           sudo adduser "$USER" lxd
@@ -56,10 +62,10 @@ jobs:
           sudo snap install snapcraft --classic
 
       - name: snapcraft test
-        run: |
-          cd ${{ matrix.snap.path }}
-           sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- snapcraft test
+        id: test
+        working-directory: ${{ matrix.snap.path }}
+        run: sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- CI=1 snapcraft test
 
       - name: Snapcraft logs
-        if: ${{ success() || (failure() && steps.snapcraft_test.outcome == 'failure') }}
+        if: ${{ success() || (failure() && steps.test.outcome == 'failure') }}
         run: cat ~/.local/state/snapcraft/log/*
