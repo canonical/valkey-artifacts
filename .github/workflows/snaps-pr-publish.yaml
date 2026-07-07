@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install snap
+      - name: Install snapcraft and LXD
         run: |
           sudo snap install lxd
           sudo adduser "$USER" lxd
@@ -43,7 +43,7 @@ jobs:
       - name: snapcraft test
         id: test
         working-directory: ${{ matrix.snap.path }}
-        run: sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- snapcraft test
+        run: sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- snapcraft test --platform "${{ matrix.runner.platform }}"
 
       - name: Snapcraft logs
         if: ${{ success() || (failure() && steps.test.outcome == 'failure') }}
