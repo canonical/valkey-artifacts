@@ -1,4 +1,4 @@
-name: chiseled-valkey
+name: valkey-chiseled
 base: core26
 version: "9.0.3"
 summary: "Valkey: open source, in memory datastore as a snap"
@@ -13,23 +13,33 @@ platforms:
   amd64:
   arm64:
 
+system-usernames:
+  snap_daemon: shared
+
+hooks:
+  install:
+    plugs:
+      - mount-observe
+
 apps:
   server:
-    command: usr/bin/valkey-server
+    command: start_valkey.sh
     daemon: simple
+    install-mode: disable
     restart-condition: always
+    restart-delay: 20s
     environment:
       LANG: C.UTF-8
     plugs:
       - network
       - network-bind
-      - network-observe
+      - mount-observe
+      - hardware-observe
   cli:
     command: usr/bin/valkey-cli
     plugs:
       - network
-      - network-bind
-      - network-observe
+      - mount-observe
 
 parts:
   valkey:
@@ -37,6 +47,7 @@ parts:
     stage-packages:
       - valkey-server
       - valkey-tools
+      - util-linux
     override-stage: |
       craftctl default
       # stay under 80 chars
@@ -51,3 +62,7 @@ parts:
         exit 1
       fi
       echo "Version check passed: $actual"
+
+  wrapper:
+    plugin: dump
+    source: snap/local

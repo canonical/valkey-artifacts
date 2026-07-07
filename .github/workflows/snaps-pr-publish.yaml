@@ -44,12 +44,19 @@ jobs:
 
       - name: Install snap
         run: |
-          snap_name=$(grep '^name:' "${{ matrix.snap.path }}/snap/snapcraft.yaml" | awk '{print $2}')
-          sudo snap install --dangerous "${{ matrix.snap.path }}/${snap_name}"*.snap
+          sudo snap install lxd
+          sudo adduser "$USER" lxd
+          sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- lxd waitready
+          sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- lxd init --auto
+          # Workaround for Docker & LXD on same machine
+          sudo iptables -F FORWARD
+          sudo iptables -P FORWARD ACCEPT
+          sudo snap install snapcraft --classic
 
-      - name: Test server
+      - name: snapcraft test
         run: |
-          snap_name=$(grep '^name:' "${{ matrix.snap.path }}/snap/snapcraft.yaml" | awk '{print $2}')
+          cd ${{ matrix.snap.path }}
+           sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- snapcraft test
 
           if snap services "${snap_name}.server" | grep -q inactive; then
             sudo snap start "${snap_name}.server"

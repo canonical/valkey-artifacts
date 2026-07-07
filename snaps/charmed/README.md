@@ -1,50 +1,75 @@
-# Charmed Valkey Snap
-[![Release to Snap Store](https://github.com/canonical/charmed-valkey-snap/actions/workflows/release.yaml/badge.svg)](https://github.com/canonical/charmed-valkey-snap/actions/workflows/release.yaml)
-
+# Valkey Charmed Snap
+[![Build and test snaps](https://github.com/canonical/valkey-artifacts/actions/workflows/ci_snaps.yaml/badge.svg)](https://github.com/canonical/valkey-artifacts/actions/workflows/ci_snaps.yaml)
+    
 This repository contains the packaging metadata for creating a snap of Valkey. 
 For more information on snaps, visit [snapcraft.io](https://snapcraft.io/). 
 
 ## Installing the Snap
-The snap can be installed directly from the Snap Store.  Follow the link below for more information.
+The snap can be installed directly from the Snap Store. Follow the link below for more information.
 <br>
 
-[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/charmed-valkey)
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/valkey-charmed)
 
 ```bash
-sudo snap install charmed-valkey --edge
+sudo snap install valkey-charmed --edge
 ```
 
 ## Interaction with the snap
 By default, the snap will install and run the valkey-server. You can connect to the server via cli:
 
 ```bash
-charmed-valkey.cli
+valkey-charmed.cli
 127.0.0.1:6379> ping
 PONG
 ```
 
-Other available commands can be found here: `snap info charmed-valkey`
+In addition to `server` and `cli`, this variant also provides `benchmark`,
+`check-aof`, `check-rdb`, `sentinel` and `metrics-exporter` apps. Both
+`sentinel` and `metrics-exporter` run as daemons and need to be started
+explicitly:
+
+```bash
+sudo snap start valkey-charmed.sentinel
+sudo snap start valkey-charmed.metrics-exporter
+```
+
+Other available commands can be found here: `snap info valkey-charmed`
 
 ## Building the Snap
 ### Clone Repository
 ```bash
-git clone git@github.com:canonical/charmed-valkey-snap.git
-cd charmed-valkey-snap
+git clone git@github.com:canonical/valkey-artifacts.git
+cd valkey-artifacts/snaps/charmed
 ```
 ### Installing and Configuring Prerequisites
 ```bash
-sudo snap install snapcraft
+sudo snap install snapcraft --classic
 sudo snap install lxd
 sudo lxd init --auto
 ```
 ### Packing and Installing the Snap
 ```bash
 snapcraft pack
-sudo snap install ./charmed-valkey*.snap --devmode
+sudo snap install ./valkey-charmed*.snap --dangerous
+```
+
+Use `--dangerous` to skip signature verification for a locally built snap.
+`--devmode` is also acceptable while iterating, and additionally relaxes
+confinement so you don't need to connect interfaces manually — but it
+disables confinement checks entirely, so don't use it to validate the final
+`strict` confinement behaviour.
+
+## Testing the Snap
+This variant ships a [spread](https://github.com/canonical/spread) suite
+covering the `smoke`, `sentinel` and `metrics-exporter` apps, run against a
+real `craft` (LXD) backend on `ubuntu-26.04`:
+
+```bash
+snapcraft test
 ```
 
 ## License
 The Charmed Valkey Snap is free software, distributed under the Apache
 Software License, version 2.0. See
-[LICENSE](https://github.com/canonical/charmed-valkey-snap/blob/main/LICENSE)
+[LICENSE](https://github.com/canonical/valkey-artifacts/blob/main/LICENSE)
 for more information.

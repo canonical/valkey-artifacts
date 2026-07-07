@@ -1,4 +1,4 @@
-name: charmed-valkey
+name: valkey-charmed
 base: core26
 version: "9.0.3"
 summary: "Valkey: open source, in memory datastore as a snap"
@@ -16,6 +16,19 @@ platforms:
 system-usernames:
   snap_daemon: shared
 
+hooks:
+  install:
+    plugs:
+      - mount-observe
+
+package-repositories:
+  - type: apt
+    components: [main]
+    suites: [resolute]
+    key-id: 6676E3F1A76ADBE4488944BF7D1A96D4BF78C79E
+    url: |
+      https://ppa.launchpadcontent.net/data-platform/prometheus-redis-exporter/ubuntu
+
 apps:
   server:
     command: start_valkey.sh
@@ -28,31 +41,28 @@ apps:
     plugs:
       - network
       - network-bind
-      - network-observe
+      - mount-observe
+      - hardware-observe
   cli:
     command: usr/bin/valkey-cli
     plugs:
       - network
-      - network-bind
-      - network-observe
+      - mount-observe
   benchmark:
     command: usr/bin/valkey-benchmark
     plugs:
       - network
-      - network-bind
-      - network-observe
+      - mount-observe
   check-aof:
     command: usr/bin/valkey-check-aof
     plugs:
-      - network
-      - network-bind
-      - network-observe
+      - home
+      - mount-observe
   check-rdb:
     command: usr/bin/valkey-check-rdb
     plugs:
-      - network
-      - network-bind
-      - network-observe
+      - home
+      - mount-observe
   sentinel:
     command: start_sentinel.sh
     daemon: simple
@@ -64,7 +74,19 @@ apps:
     plugs:
       - network
       - network-bind
+      - mount-observe
+      - hardware-observe
+  metrics-exporter:
+    command: start_metrics_exporter.sh
+    daemon: simple
+    install-mode: disable
+    restart-condition: always
+    restart-delay: 20s
+    plugs:
+      - network
+      - network-bind
       - network-observe
+      - mount-observe
 
 parts:
   valkey:
@@ -73,13 +95,8 @@ parts:
       - valkey-server
       - valkey-tools
       - valkey-sentinel
+      - prometheus-redis-exporter
       - util-linux
-    override-build: |
-      craftctl default
-      cp ${CRAFT_PART_INSTALL}/etc/valkey/valkey.conf \
-        ${CRAFT_PART_INSTALL}/etc/valkey.conf
-      cp ${CRAFT_PART_INSTALL}/etc/valkey/sentinel.conf \
-        ${CRAFT_PART_INSTALL}/etc/sentinel.conf
     override-stage: |
       craftctl default
       # stay under 80 chars
