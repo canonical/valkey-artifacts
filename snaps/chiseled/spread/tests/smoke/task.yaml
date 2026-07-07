@@ -2,4 +2,4 @@ summary: Valkey snap smoke test
 
 execute: |
   echo "Running smoke test..."
-  chiseled-valkey.cli info
+  valkey-chiseled.cli info

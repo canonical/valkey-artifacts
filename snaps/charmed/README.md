@@ -1,4 +1,4 @@
-# Charmed Valkey Snap
+# Valkey Charmed Snap
 [![Build and test snaps](https://github.com/canonical/valkey-artifacts/actions/workflows/ci_snaps.yaml/badge.svg)](https://github.com/canonical/valkey-artifacts/actions/workflows/ci_snaps.yaml)
     
 This repository contains the packaging metadata for creating a snap of Valkey. 

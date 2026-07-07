@@ -1,4 +1,4 @@
-project: chiseled-valkey-snap
+project: valkey-chiseled-snap
 
 backends:
   craft:
@@ -13,19 +13,19 @@ suites:
       apt --purge remove valkey*
     prepare-each: |
       snap install "$CRAFT_ARTIFACT" --dangerous
-      snap start chiseled-valkey.server
+      snap start valkey-chiseled.server
       retry=0
-      until chiseled-valkey.cli ping 2>/dev/null | grep -q PONG; do
+      until valkey-chiseled.cli ping 2>/dev/null | grep -q PONG; do
         retry=$((retry + 1))
         if [ $retry -ge 30 ]; then
           echo "Valkey server did not become ready in time"
-          snap logs chiseled-valkey.server || true
+          snap logs valkey-chiseled.server || true
           exit 1
         fi
         sleep 1
       done
     restore-each: |
-      snap remove chiseled-valkey --purge --terminate
+      snap remove valkey-chiseled --purge --terminate
 
 exclude:
   - .git
