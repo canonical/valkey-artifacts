@@ -48,6 +48,7 @@ apps:
     plugs:
       - network
       - mount-observe
+      - home
   benchmark:
     command: usr/bin/valkey-benchmark
     plugs:
