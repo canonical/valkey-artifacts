@@ -44,7 +44,7 @@ jobs:
   # 2. Build and publish the snaps to a branch
   publish-pr-snaps:
     name: Publish snaps to PR branch
-    needs: snapshot-current-snap-revisions
+    # needs: snapshot-current-snap-revisions
     uses: ./.github/workflows/snaps-pr-publish.yaml
     secrets:
       SNAP_STORE_TOKEN_EDGE: ${{ secrets.SNAP_STORE_TOKEN_EDGE }}
@@ -56,12 +56,12 @@ jobs:
   wait-for-snap-revision:
     name: Wait for PR snap revisions
     needs:
-      - snapshot-current-snap-revisions
+      # - snapshot-current-snap-revisions
       - publish-pr-snaps
     runs-on: ubuntu-26.04
     timeout-minutes: 30
     env:
-      CURRENT_REVISIONS: ${{ needs.snapshot-current-snap-revisions.outputs.current-revisions }}
+      # CURRENT_REVISIONS: ${{ needs.snapshot-current-snap-revisions.outputs.current-revisions }}
       SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_TOKEN_EDGE }}
     steps:
       - uses: actions/checkout@v6
