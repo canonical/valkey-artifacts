@@ -10,19 +10,20 @@ upstream sources are pulled in at build time via `stage-packages` /
 
 ```
 .
-├── snaps/
-│   ├── standard/    # valkey — full CLI toolset (server, cli, benchmark, sentinel, ...)
-│   ├── chiseled/    # valkey-chiseled — minimal variant, server + cli only
-│   └── charmed/     # valkey-charmed — adds the Prometheus redis-exporter, used by charms
-├── rocks/
-│   ├── standard/    # valkey — OCI image built from the standard snap
-│   ├── chiseled/    # valkey-chiseled — OCI image built from the chiseled snap
-│   └── charmed/     # valkey-charmed — OCI image built from the charmed snap
+├── valkey/
+│   ├── snaps/
+│   │   ├── standard/    # valkey — full CLI toolset (server, cli, benchmark, sentinel, ...)
+│   │   ├── chiseled/    # valkey-chiseled — minimal variant, server + cli only
+│   │   └── charmed/     # valkey-charmed — adds the Prometheus redis-exporter, used by charms
+│   └── rocks/
+│       ├── standard/    # valkey — OCI image built from the standard snap
+│       ├── chiseled/    # valkey-chiseled — OCI image built from the chiseled snap
+│       └── charmed/     # valkey-charmed — OCI image built from the charmed snap
 └── .github/
     ├── workflows/
-    │   ├── lint.yaml               # yamllint on snaps/ and rocks/ on PR
-    │   ├── snaps-discover.yaml     # discovers every snaps/*/snap/snapcraft.yaml to build a matrix
-    │   ├── rocks-discover.yaml     # discovers every rocks/*/rockcraft.yaml to build a matrix
+    │   ├── lint.yaml               # yamllint on valkey/snaps/ and valkey/rocks/ on PR
+    │   ├── snaps-discover.yaml     # discovers every */snap/snapcraft.yaml to build a matrix
+    │   ├── rocks-discover.yaml     # discovers every */rockcraft.yaml to build a matrix
     │   ├── pr-rocks-from-snaps.yaml  # PR: publish snaps to a PR channel, then build/test rocks against them
     │   ├── snaps-pr-publish.yaml   # builds and publishes snaps to a PR channel
     │   ├── rocks-pr-tests.yaml     # builds, tests and Trivy-scans rocks against a given snap channel
@@ -39,7 +40,7 @@ Each snap/rock variant is self-contained: it has its own `snapcraft.yaml` (or
 `rockcraft.yaml`), `spread.yaml` test suite, and `README.md`. CI discovers
 variants dynamically — snaps by searching for `snap/snapcraft.yaml` files,
 rocks by searching for `rockcraft.yaml` files — so a new variant only needs
-to be added under `snaps/<name>/` or `rocks/<name>/` to be picked up by the
+to be added under `valkey/snaps/<name>/` or `valkey/rocks/<name>/` to be picked up by the
 build and test matrix, no workflow changes required.
 
 ### Variants
@@ -112,7 +113,7 @@ first.
 
 ```bash
 git clone git@github.com:canonical/valkey-artifacts.git
-cd valkey-artifacts/rocks/standard   # or chiseled / charmed
+cd valkey-artifacts/valkey/rocks/standard   # or chiseled / charmed
 ```
 
 ### Install and configure prerequisites
@@ -180,7 +181,7 @@ Each rock variant ships a `spread.yaml` at its root, run against a real
 runs the spread suite against it:
 
 ```bash
-cd rocks/standard   # or chiseled / charmed
+cd valkey/rocks/standard   # or chiseled / charmed
 rockcraft test
 ```
 
@@ -212,7 +213,7 @@ docker logs -f <container-name>
 
 On every pull request:
 
-1. `lint.yaml` runs `yamllint` over `snaps/` and `rocks/`.
+1. `lint.yaml` runs `yamllint` over `valkey/snaps/` and `valkey/rocks/`.
 2. `pr-rocks-from-snaps.yaml` orchestrates the rest:
    - `snaps-pr-publish.yaml` builds every discovered snap and publishes it to
      a PR-scoped Snap Store channel (`9.0/edge/pr-<number>`).

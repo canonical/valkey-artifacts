@@ -1,8 +1,9 @@
-# Valkey Charmed rock
+# Valkey Chiseled rock
 [![Publish artifacts](https://github.com/canonical/valkey-artifacts/actions/workflows/publish.yaml/badge.svg)](https://github.com/canonical/valkey-artifacts/actions/workflows/publish.yaml)
 
-This directory contains the packaging metadata for creating a rock of Valkey Charmed built from the Valkey Charmed
-Snap. For more information on rocks, visit the [rockcraft Github](https://github.com/canonical/rockcraft).
+This directory contains the packaging metadata for creating a chiseled rock image of Valkey. The chiseled variant
+is a minimal OCI image built from Ubuntu packages with no shell or package manager, reducing attack surface. For
+more information on rocks, visit the [rockcraft Github](https://github.com/canonical/rockcraft).
 
 ## Building the rock
 The steps outlined below are based on the assumption that you are building the rock with the latest LTS of Ubuntu.  
@@ -11,7 +12,7 @@ If you are using another version of Ubuntu or another operating system, the proc
 ### Clone Repository
 ```bash
 git clone git@github.com:canonical/valkey-artifacts.git
-cd valkey-artifacts/rocks/charmed
+cd valkey-artifacts/valkey/rocks/chiseled
 ```
 ### Installing Prerequisites
 ```bash
@@ -29,10 +30,10 @@ sudo lxd init --auto
 ### Packing and Running the rock
 ```bash
 rockcraft pack
-sudo skopeo --insecure-policy copy oci-archive:valkey-charmed*.rock docker-daemon:valkey-charmed:<tag>
-docker run --rm -it valkey-charmed:<tag>
+sudo skopeo --insecure-policy copy oci-archive:valkey-chiseled*.rock docker-daemon:valkey-chiseled:<tag>
+docker run --rm -it valkey-chiseled:<tag>
 ```
 
 ## License:
-The Valkey Charmed rock is free software, distributed under the Apache Software License, version 2.0. See licenses for 
+The Valkey Chiseled rock is free software, distributed under the Apache Software License, version 2.0. See licenses for 
 more information.

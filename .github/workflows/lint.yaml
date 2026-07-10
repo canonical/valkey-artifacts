@@ -22,7 +22,7 @@ jobs:
         run: pip install yamllint
 
       - name: Run yamllint on snaps
-        run: yamllint --no-warnings ./snaps/
+        run: yamllint --no-warnings ./valkey/snaps/
 
       - name: Run yamllint on rocks
-        run: yamllint --no-warnings ./rocks/
+        run: yamllint --no-warnings ./valkey/rocks/
