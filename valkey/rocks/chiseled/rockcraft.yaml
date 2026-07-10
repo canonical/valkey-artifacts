@@ -3,7 +3,7 @@
 ---
 name: valkey-chiseled
 base: ubuntu@26.04
-version: "9.0.3"
+version: "9.0.4"
 summary: Valkey Chiseled ROCK OCI
 description: |
   This is an OCI image that bundles Valkey together with the metrics exporter
