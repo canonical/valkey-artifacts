@@ -7,5 +7,5 @@ exec "${SNAP}"/usr/bin/setpriv \
     --regid snap_daemon \
     -- \
     "${SNAP}"/usr/bin/valkey-sentinel \
-    "${SNAP_DATA}"/etc/valkey-charmed/sentinel.conf \
+    "${SNAP_DATA}"/etc/valkey/sentinel.conf \
     --daemonize no

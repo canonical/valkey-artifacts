@@ -1,10 +1,10 @@
 #!/bin/sh -e
 
 # create Valkey's working directories
-DATA="${SNAP_COMMON}"/var/lib/valkey-charmed
-LOGS="${SNAP_COMMON}"/var/log/valkey-charmed
-RUNS="${SNAP_COMMON}"/var/run/valkey-charmed
-CONF="${SNAP_DATA}"/etc/valkey-charmed
+DATA="${SNAP_COMMON}"/var/lib/valkey
+LOGS="${SNAP_COMMON}"/var/log/valkey
+RUNS="${SNAP_COMMON}"/var/run/valkey
+CONF="${SNAP_DATA}"/etc/valkey
 mkdir -p "${DATA}"
 mkdir -p "${LOGS}"
 mkdir -p "${RUNS}"
