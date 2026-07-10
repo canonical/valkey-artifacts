@@ -1,6 +1,6 @@
 name: valkey-chiseled
 base: core26
-version: "9.0.3"
+version: "9.0.4"
 summary: "Valkey: open source, in memory datastore as a snap"
 description: |
   A flexible distributed key-value database that is optimized
