@@ -1,6 +1,6 @@
-name: valkey
+name: valkey-chiseled
 base: core26
-version: "9.0.3"
+version: "9.0.4"
 summary: "Valkey: open source, in memory datastore as a snap"
 description: |
   A flexible distributed key-value database that is optimized
@@ -41,34 +41,6 @@ apps:
       - network
       - mount-observe
       - home
-  benchmark:
-    command: usr/bin/valkey-benchmark
-    plugs:
-      - network
-      - mount-observe
-  check-aof:
-    command: usr/bin/valkey-check-aof
-    plugs:
-      - home
-      - mount-observe
-  check-rdb:
-    command: usr/bin/valkey-check-rdb
-    plugs:
-      - home
-      - mount-observe
-  sentinel:
-    command: start_sentinel.sh
-    daemon: simple
-    install-mode: disable
-    restart-condition: always
-    restart-delay: 20s
-    environment:
-      LANG: C.UTF-8
-    plugs:
-      - network
-      - network-bind
-      - mount-observe
-      - hardware-observe
 
 parts:
   valkey:
@@ -76,7 +48,6 @@ parts:
     stage-packages:
       - valkey-server
       - valkey-tools
-      - valkey-sentinel
       - util-linux
     override-stage: |
       craftctl default

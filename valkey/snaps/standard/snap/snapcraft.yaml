@@ -1,6 +1,6 @@
-name: valkey-charmed
+name: valkey
 base: core26
-version: "9.0.3"
+version: "9.0.4"
 summary: "Valkey: open source, in memory datastore as a snap"
 description: |
   A flexible distributed key-value database that is optimized
@@ -20,14 +20,6 @@ hooks:
   install:
     plugs:
       - mount-observe
-
-package-repositories:
-  - type: apt
-    components: [main]
-    suites: [resolute]
-    key-id: 6676E3F1A76ADBE4488944BF7D1A96D4BF78C79E
-    url: |
-      https://ppa.launchpadcontent.net/data-platform/prometheus-redis-exporter/ubuntu
 
 apps:
   server:
@@ -77,17 +69,6 @@ apps:
       - network-bind
       - mount-observe
       - hardware-observe
-  metrics-exporter:
-    command: start_metrics_exporter.sh
-    daemon: simple
-    install-mode: disable
-    restart-condition: always
-    restart-delay: 20s
-    plugs:
-      - network
-      - network-bind
-      - network-observe
-      - mount-observe
 
 parts:
   valkey:
@@ -96,7 +77,6 @@ parts:
       - valkey-server
       - valkey-tools
       - valkey-sentinel
-      - prometheus-redis-exporter
       - util-linux
     override-stage: |
       craftctl default

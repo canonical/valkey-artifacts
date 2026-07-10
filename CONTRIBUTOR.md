@@ -59,7 +59,7 @@ stages the snap of the same name (see each `rockcraft.yaml`'s `stage-snaps`).
 
 ```bash
 git clone git@github.com:canonical/valkey-artifacts.git
-cd valkey-artifacts/snaps/standard   # or chiseled / charmed
+cd valkey-artifacts/valkey/snaps/standard   # or chiseled / charmed
 ```
 
 ### Install and configure prerequisites
@@ -74,14 +74,15 @@ sudo lxd init --auto
 
 ```bash
 snapcraft pack
-sudo snap install ./valkey*.snap --dangerous
+sudo snap install ./valkey*.snap --dangerous --jailmode
 ```
 
 Use `--dangerous` to skip signature verification for a locally built snap.
 `--devmode` is also acceptable while iterating, and additionally relaxes
 confinement so you don't need to connect interfaces manually — but note that
 disables confinement checks entirely, so don't use it to validate the final
-`strict` confinement behaviour.
+`strict` confinement behaviour. 
+`--jailmode` is the recommended option for development as it tests how a snap published with developer mode will behave when strictly confined.
 
 ## Interacting with the snap
 
@@ -148,7 +149,7 @@ under `snap/spread.yaml` plus `spread/tests/smoke/task.yaml`, run against a
 real `craft` (LXD) backend on `ubuntu-26.04`. To run it locally:
 
 ```bash
-cd snaps/standard   # or chiseled / charmed
+cd valkey/snaps/standard   # or chiseled / charmed
 snapcraft test
 ```
 
