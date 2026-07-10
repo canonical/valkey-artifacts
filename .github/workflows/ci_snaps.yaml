@@ -25,7 +25,7 @@ jobs:
         run: pip install yamllint
 
       - name: Run yamllint
-        run: yamllint --no-warnings ./snaps/
+        run: yamllint --no-warnings ./valkey/snaps/
 
   # ── Discover snaps ────────────────────────────────────────────────────────
 
