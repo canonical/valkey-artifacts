@@ -1,0 +1,7 @@
+summary: test the 'charmed' project
+
+execute: |
+  docker exec -t "${SPREAD_TASK//\//_}" valkey-cli info
+
+  # Verify metrics-exporter is running and reporting Valkey as up
+  curl -sf http://localhost:9121/metrics | grep -q "redis_up 1"
