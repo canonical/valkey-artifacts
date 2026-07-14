@@ -33,11 +33,11 @@ parts:
     stage-snaps:
       - valkey-chiseled/9.0/edge
     stage-packages:
-      - libatomic1
-      - libc6
-      - libstdc++6
-      - libsystemd0
-      - openssl
+      - libc6_libs
+      - libatomic1_libs
+      - libstdc++6_libs
+      - libsystemd0_libs
+      - libssl3t64_libs
     override-stage: |
       craftctl default
       # stay under 80 chars
@@ -58,7 +58,6 @@ parts:
       - valkey
     override-prime: |
       craftctl default
-      ln -sf usr/lib64 $CRAFT_PRIME/lib64
       mkdir -p $CRAFT_PRIME/var/lib/valkey
       cp $CRAFT_PRIME/etc/valkey/valkey.conf $CRAFT_PRIME/var/lib/valkey/
       chown -R 584792:584792 $CRAFT_PRIME/var/lib/valkey
