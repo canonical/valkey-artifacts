@@ -33,10 +33,6 @@ parts:
     stage-packages:
       - libatomic1
       - openssl
-  valkey-user:
-    plugin: nil
-    after:
-      - valkey
     override-stage: |
       craftctl default
       # stay under 80 chars
@@ -51,6 +47,12 @@ parts:
         exit 1
       fi
       echo "Version check passed: $actual"
+  valkey-user:
+    plugin: nil
+    after:
+      - valkey
     override-prime: |
       mkdir -p $CRAFT_PRIME/var/lib/valkey
+      cp $CRAFT_PRIME/etc/valkey/valkey.conf $CRAFT_PRIME/var/lib/valkey/
+      cp $CRAFT_PRIME/etc/valkey/sentinel.conf $CRAFT_PRIME/var/lib/valkey/
       chown -R 584792:584792 $CRAFT_PRIME/var/lib/valkey
