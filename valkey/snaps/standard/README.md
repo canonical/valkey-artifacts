@@ -15,17 +15,19 @@ sudo snap install valkey --edge
 ```
 
 ## Interaction with the snap
-By default, the snap will install and run the valkey-server. You can connect to the server via cli:
+By default, the snap installs with all services disabled. Start the
+valkey-server explicitly, then connect to it via cli:
 
 ```bash
+sudo snap start valkey.server
 valkey.cli
 127.0.0.1:6379> ping
 PONG
 ```
 
 In addition to `server` and `cli`, this variant also provides `benchmark`,
-`check-aof`, `check-rdb` and `sentinel` apps. `sentinel` runs as a daemon and
-needs to be started explicitly:
+`check-aof`, `check-rdb` and `sentinel` apps. `sentinel` runs as a daemon
+and likewise needs to be started explicitly:
 
 ```bash
 sudo snap start valkey.sentinel

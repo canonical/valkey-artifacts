@@ -15,9 +15,11 @@ sudo snap install valkey-charmed --edge
 ```
 
 ## Interaction with the snap
-By default, the snap will install and run the valkey-server. You can connect to the server via cli:
+By default, the snap installs with all services disabled. Start the
+valkey-server explicitly, then connect to it via cli:
 
 ```bash
+sudo snap start valkey-charmed.server
 valkey-charmed.cli
 127.0.0.1:6379> ping
 PONG
@@ -25,8 +27,8 @@ PONG
 
 In addition to `server` and `cli`, this variant also provides `benchmark`,
 `check-aof`, `check-rdb`, `sentinel` and `metrics-exporter` apps. Both
-`sentinel` and `metrics-exporter` run as daemons and need to be started
-explicitly:
+`sentinel` and `metrics-exporter` run as daemons and likewise need to be
+started explicitly:
 
 ```bash
 sudo snap start valkey-charmed.sentinel
