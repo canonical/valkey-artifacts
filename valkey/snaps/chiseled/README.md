@@ -15,9 +15,11 @@ sudo snap install valkey-chiseled --edge
 ```
 
 ## Interaction with the snap
-By default, the snap will install and run the valkey-server. You can connect to the server via cli:
+By default, the snap installs with all services disabled. Start the
+valkey-server explicitly, then connect to it via cli:
 
 ```bash
+sudo snap start valkey-chiseled.server
 valkey-chiseled.cli
 127.0.0.1:6379> ping
 PONG
