@@ -122,7 +122,6 @@ cd valkey-artifacts/valkey/rocks/standard   # or chiseled / charmed
 sudo snap install rockcraft --edge --classic
 sudo snap install docker
 sudo snap install lxd
-sudo apt-get -y update && sudo apt-get -y install skopeo
 sudo usermod -aG docker "$USER"
 sudo lxd init --auto
 ```

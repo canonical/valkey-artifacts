@@ -18,7 +18,6 @@ cd valkey-artifacts/valkey/rocks/charmed
 sudo snap install rockcraft --edge --classic
 sudo snap install docker
 sudo snap install lxd
-sudo apt-get -y update && sudo apt-get -y install skopeo
 ```
 ### Configuring Prerequisites
 ```bash
