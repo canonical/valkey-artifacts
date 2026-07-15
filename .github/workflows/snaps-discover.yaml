@@ -8,12 +8,16 @@ on:
       snaps:
         description: "Discovered snap path/name list"
         value: ${{ jobs.discover-snaps.outputs.snaps }}
+      non-standard-snaps:
+        description: "Discovered snap path/name list excluding the standard 'valkey' snap"
+        value: ${{ jobs.discover-snaps.outputs.non-standard-snaps }}
 
 jobs:
   discover-snaps:
     runs-on: ubuntu-26.04
     outputs:
       snaps: ${{ steps.discover.outputs.snaps }}
+      non-standard-snaps: ${{ steps.discover.outputs.non-standard-snaps }}
     steps:
       - uses: actions/checkout@v6
 
@@ -31,3 +35,7 @@ jobs:
           )
 
           echo "snaps=$snaps" >> "$GITHUB_OUTPUT"
+
+          # Exclude the standard 'valkey' snap, which is published separately.
+          non_standard_snaps=$(echo "$snaps" | jq -c '[.[] | select(.name != "valkey")]')
+          echo "non-standard-snaps=$non_standard_snaps" >> "$GITHUB_OUTPUT"

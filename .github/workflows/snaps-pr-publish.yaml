@@ -7,6 +7,12 @@ on:
     secrets:
       SNAP_STORE_TOKEN_EDGE:
         required: true
+      CRAFT_SOURCE_STORE_CREDENTIALS:
+        required: true
+      CI_COMMITS_SSH_SIGNING_KEY:
+        required: true
+      PAT:
+        required: true
 
 jobs:
   discover-snaps:
@@ -37,12 +43,14 @@ jobs:
           # Workaround for Docker & LXD on same machine
           sudo iptables -F FORWARD
           sudo iptables -P FORWARD ACCEPT
-          sudo snap install snapcraft --classic
+          sudo snap install snapcraft --classic --channel=latest/beta
+          sudo snap install craft-sd --channel=latest/beta
+          sudo snap install bld --edge
 
       - name: snapcraft test
         id: test
         working-directory: ${{ matrix.snap.path }}
-        run: sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- CI=1 snapcraft test
+        run: sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- CRAFT_SD_ENV=production CI=1 snapcraft test
 
       - name: Snapcraft logs
         if: ${{ success() || (failure() && steps.test.outcome == 'failure') }}
@@ -79,16 +87,21 @@ jobs:
 
   publish-snaps:
     name: Publish snap to PR branch | ${{ matrix.snap.name }}
-    needs:
-      - discover-snaps
-      - test-snaps
     strategy:
       fail-fast: false
       matrix:
-        snap: ${{ fromJSON(needs.discover-snaps.outputs.snaps) }}
+        # Excludes the standard 'valkey' snap, which is published separately by
+        # publish-standard. Filtering the matrix here (rather than a job-level
+        # `if: matrix.snap.name != 'valkey'`) works around
+        # https://github.com/actions/runner/issues/1985 — the `matrix` context
+        # is not available in a job-level `if`.
+        snap: ${{ fromJSON(needs.discover-snaps.outputs.non-standard-snaps) }}
+    needs:
+      - discover-snaps
+      - test-snaps
     uses: canonical/data-platform-workflows/.github/workflows/release_snap_pr.yaml@v49.0.2
     with:
-      track: "9.0"
+      track: "9"
       path-to-snap-project-directory: ${{ matrix.snap.path }}
       artifact-prefix: packed-snap-${{ matrix.snap.name }}
     secrets:
@@ -96,3 +109,16 @@ jobs:
     permissions:
       actions: read # Needed for GitHub API call to get workflow version
       contents: read
+
+  publish-standard:
+    needs:
+      - test-snaps
+    uses: ./.github/workflows/snap-standard-pr-publish.yaml
+    with:
+      snap-path: valkey/snaps/standard
+      channel: 9.1-26.04/edge/pr-${{ github.event.pull_request.number }}
+      release-branch: release-pr-${{ github.event.pull_request.number }}
+    secrets:
+      CRAFT_SOURCE_STORE_CREDENTIALS: ${{ secrets.CRAFT_SOURCE_STORE_CREDENTIALS }}
+      CI_COMMITS_SSH_SIGNING_KEY: ${{ secrets.CI_COMMITS_SSH_SIGNING_KEY }}
+      PAT: ${{ secrets.PAT }}

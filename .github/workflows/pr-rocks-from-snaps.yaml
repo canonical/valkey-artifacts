@@ -10,7 +10,7 @@ on:
   pull_request:
 
 env:
-  CHANNEL: 9.0/edge/pr-${{ github.event.pull_request.number }}
+  CHANNEL: 9/edge/pr-${{ github.event.pull_request.number }}
 
 jobs:
   discover-rocks:
@@ -30,7 +30,7 @@ jobs:
       current-revisions: ${{ steps.current-revisions.outputs.current-revisions }}
     env:
       ROCKS: ${{ needs.discover-rocks.outputs.rocks }}
-      SNAPS: ${{ needs.discover-snaps.outputs.snaps }}
+      SNAPS: ${{ needs.discover-snaps.outputs.non-standard-snaps }}
       SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_TOKEN_EDGE }}
     steps:
       - uses: actions/checkout@v6
@@ -48,6 +48,9 @@ jobs:
     uses: ./.github/workflows/snaps-pr-publish.yaml
     secrets:
       SNAP_STORE_TOKEN_EDGE: ${{ secrets.SNAP_STORE_TOKEN_EDGE }}
+      CRAFT_SOURCE_STORE_CREDENTIALS: ${{ secrets.CRAFT_SOURCE_STORE_CREDENTIALS }}
+      CI_COMMITS_SSH_SIGNING_KEY: ${{ secrets.CI_COMMITS_SSH_SIGNING_KEY }}
+      PAT: ${{ secrets.PAT }}
     permissions:
       actions: read
       contents: read
@@ -78,7 +81,7 @@ jobs:
     needs: wait-for-snap-revision
     uses: ./.github/workflows/rocks-pr-tests.yaml
     with:
-      snap-channel: 9.0/edge/pr-${{ github.event.pull_request.number }}
+      snap-suffix: pr-${{ github.event.pull_request.number }}
     permissions:
       actions: read
       contents: read

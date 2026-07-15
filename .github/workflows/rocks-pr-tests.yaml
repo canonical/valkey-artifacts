@@ -10,8 +10,8 @@ name: Rock tests on PR
 on:
   workflow_call:
     inputs:
-      snap-channel:
-        description: Snap Store channel the rocks should stage snaps from.
+      snap-suffix:
+        description: Channel suffix appended to each rock's existing stage snap channel (e.g. pr-123).
         required: true
         type: string
 
@@ -42,7 +42,7 @@ jobs:
         env:
           ROCK_NAME: ${{ matrix.rock.name }}
           ROCKCRAFT_FILE: ${{ matrix.rock.path }}/rockcraft.yaml
-          SNAP_CHANNEL: ${{ inputs.snap-channel }}
+          SNAP_SUFFIX: ${{ inputs.snap-suffix }}
         run: .github/scripts/retarget-rock-stage-snaps.sh
 
       - name: Test rock

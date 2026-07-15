@@ -1,0 +1,141 @@
+# Copyright 2026 Canonical Ltd.
+# See LICENSE file for licensing details.
+name: Publish standard snap
+
+on:
+  workflow_call:
+    inputs:
+      snap-path:
+        description: Path to the standard snap project directory.
+        required: true
+        type: string
+      channel:
+        description: Snap Store channel to publish to.
+        required: true
+        type: string
+      release-branch:
+        description: Temporary branch to create in the standard snap source repository.
+        required: true
+        type: string
+    secrets:
+      CRAFT_SOURCE_STORE_CREDENTIALS:
+        required: true
+      CI_COMMITS_SSH_SIGNING_KEY:
+        required: true
+      PAT:
+        required: true
+
+jobs:
+  publish:
+    name: Publish snap | valkey
+    runs-on: ubuntu-26.04
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      CRAFT_SD_ENV: production
+      CRAFT_SOURCE_STORE_CREDENTIALS: ${{ secrets.CRAFT_SOURCE_STORE_CREDENTIALS }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install snapcraft
+        run: |
+          sudo snap install snapcraft --classic --channel=latest/beta
+          sudo snap install craft-sd --channel=latest/beta
+
+      - name: Configure git signing
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.CI_COMMITS_SSH_SIGNING_KEY }}" > ~/.ssh/ssh-key
+          chmod 600 ~/.ssh/ssh-key
+
+          git config --global user.name "canonical-data-platform-bot"
+          git config --global user.email "canonical-data-platform-bot@canonical.com"
+
+          git config --global gpg.format ssh
+          git config --global user.signingkey ~/.ssh/ssh-key
+          git config --global commit.gpgsign true
+
+      - name: Configure GitHub credentials
+        env:
+          PAT: ${{ secrets.PAT }}
+        run: |
+          git config --global url."https://x-access-token:${PAT}@github.com/".insteadOf "https://github.com/"
+
+      - name: Init new git and origin remote in snap directory
+        working-directory: ${{ inputs.snap-path }}
+        run: |
+          git init -b ${{ inputs.release-branch }}
+          git remote add origin https://github.com/canonical/valkey-snap.git
+          git add .
+          git commit -m "Release ${{ inputs.release-branch }}"
+          git push -f origin ${{ inputs.release-branch }}
+
+      - name: Commit to channel
+        id: commit
+        working-directory: ${{ inputs.snap-path }}
+        run: |
+          commit_sha="$(git rev-parse HEAD)"
+          output=$(snapcraft commit --channel "$CHANNEL" "$commit_sha" 2>&1) || true
+          echo "$output"
+          buildset_id=$(echo "$output" | grep -oP "(?<=--buildset-id )\S+")
+          if [ -z "$buildset_id" ]; then
+            echo "snapcraft commit failed — no buildset-id in output"
+            exit 1
+          fi
+          echo "buildset_id=$buildset_id" >> "$GITHUB_ENV"
+
+      - name: Poll buildset until complete
+        id: poll
+        working-directory: ${{ inputs.snap-path }}
+        run: |
+          echo "Tracking buildset $buildset_id on channel $CHANNEL"
+          while true; do
+            retries=0
+            until output=$(snapcraft buildsets --buildset-id "$buildset_id" --channel "$CHANNEL" 2>/tmp/buildsets_err.log); do
+              retries=$((retries + 1))
+              cat /tmp/buildsets_err.log
+              if [ $retries -ge 5 ]; then
+                echo "Failed to fetch buildset status after $retries attempts"
+                exit 1
+              fi
+              echo "Network error, retrying in 10s... ($retries/5)"
+              sleep 10
+            done
+            echo "$output"
+            statuses=$(echo "$output" | awk 'NR>1 && NF { print $9 }')
+            if echo "$statuses" | grep -qx 'failed\|error'; then
+              echo "Build failed"
+              exit 1
+            fi
+            if [ -n "$statuses" ] && ! echo "$statuses" | grep -qvx 'succeeded'; then
+              echo "All builds completed successfully"
+              break
+            fi
+            sleep 30
+          done
+
+      - name: Download buildset logs
+        if: failure() && steps.poll.outcome == 'failure'
+        working-directory: ${{ inputs.snap-path }}
+        run: |
+          snapcraft buildset-logs "$buildset_id" --download
+          echo "Downloaded log files:"
+          ls -la "${buildset_id}"*
+          echo "Log contents:"
+          cat "${buildset_id}"*
+
+      - name: Upload buildset logs
+        if: failure() && steps.poll.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: buildset-logs-${{ env.buildset_id }}
+          path: "${{ env.buildset_id }}*"
+          if-no-files-found: warn
+
+      - name: Delete release branch
+        if: success()
+        working-directory: ${{ inputs.snap-path }}
+        run: git push origin --delete ${{ inputs.release-branch }}
