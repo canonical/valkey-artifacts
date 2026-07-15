@@ -2,8 +2,7 @@
 # See LICENSE-rock file for licensing details.
 ---
 name: valkey-chiseled
-base: bare
-build-base: ubuntu@26.04
+base: ubuntu@26.04
 
 version: "9.0.4"
 summary: Valkey Chiseled ROCK OCI
@@ -33,11 +32,8 @@ parts:
     stage-snaps:
       - valkey-chiseled/9.0/edge
     stage-packages:
-      - libc6_libs
-      - libatomic1_libs
-      - libstdc++6_libs
-      - libsystemd0_libs
-      - libssl3t64_libs
+      - libatomic1
+      - openssl
     override-stage: |
       craftctl default
       # stay under 80 chars
