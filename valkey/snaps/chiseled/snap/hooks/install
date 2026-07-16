@@ -17,6 +17,7 @@ cp "${SNAP}"/etc/valkey/valkey.conf "${CONF}"/
 sed -i "s|^dir /var/lib/valkey|dir ${DATA}|" "${CONF}"/valkey.conf
 sed -i "s|^logfile /var/log/valkey/.*|logfile ${LOGS}/valkey-server.log|" "${CONF}"/valkey.conf
 sed -i "s|^pidfile /run/valkey/.*|pidfile ${RUNS}/valkey-server.pid|" "${CONF}"/valkey.conf
+sed -i "s|^daemonize .*|daemonize no|" "${CONF}"/valkey.conf
 
 # If we just created the directories, we set up permissions
 if [ "$(stat -c '%u' "${DATA}")" = 0 ]; then
