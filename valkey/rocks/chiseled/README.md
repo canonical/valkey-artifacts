@@ -29,7 +29,7 @@ sudo lxd init --auto
 ### Packing and Running the rock
 ```bash
 rockcraft pack
-sudo skopeo --insecure-policy copy oci-archive:valkey-chiseled*.rock docker-daemon:valkey-chiseled:<tag>
+rockcraft.skopeo --insecure-policy copy oci-archive:valkey-chiseled*.rock docker-daemon:valkey-chiseled:<tag>
 docker run --rm -it valkey-chiseled:<tag>
 ```
 
