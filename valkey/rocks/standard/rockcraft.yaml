@@ -23,7 +23,7 @@ services:
     override: replace
     startup: enabled
     summary: Start Valkey
-    command: "valkey-server --dir /var/lib/valkey"
+    command: "valkey-server /var/lib/valkey/valkey.conf"
 
 parts:
   valkey:
@@ -55,4 +55,7 @@ parts:
       mkdir -p $CRAFT_PRIME/var/lib/valkey
       cp $CRAFT_PRIME/etc/valkey/valkey.conf $CRAFT_PRIME/var/lib/valkey/
       cp $CRAFT_PRIME/etc/valkey/sentinel.conf $CRAFT_PRIME/var/lib/valkey/
+      CONF="$CRAFT_PRIME/var/lib/valkey/valkey.conf"
+      sed -i -E '/^[[:space:]]*dir[[:space:]]/d' "$CONF"
+      echo 'dir /var/lib/valkey' >> "$CONF"
       chown -R 584792:584792 $CRAFT_PRIME/var/lib/valkey

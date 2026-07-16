@@ -133,7 +133,7 @@ change to take effect.
 
 ```bash
 rockcraft pack
-sudo skopeo --insecure-policy copy oci-archive:valkey*.rock docker-daemon:valkey:<tag>
+rockcraft.skopeo --insecure-policy copy oci-archive:valkey*.rock docker-daemon:valkey:<tag>
 docker run --rm -it valkey:<tag>
 ```
 
