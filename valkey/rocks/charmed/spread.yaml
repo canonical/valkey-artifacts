@@ -50,6 +50,9 @@ suites:
         sleep 1
       done
 
+    restore-each: |
+      docker stop "${SPREAD_TASK//\//_}" 2>/dev/null || true
+
     restore: |
       docker image rm --force valkey-charmed:latest
 
