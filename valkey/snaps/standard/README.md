@@ -1,5 +1,5 @@
 # Valkey Snap
-[![Build and test snaps](https://github.com/canonical/valkey-artifacts/actions/workflows/ci_snaps.yaml/badge.svg)](https://github.com/canonical/valkey-artifacts/actions/workflows/ci_snaps.yaml)
+[![Publish artifacts](https://github.com/canonical/valkey-artifacts/actions/workflows/publish.yaml/badge.svg)](https://github.com/canonical/valkey-artifacts/actions/workflows/publish.yaml)
 
 This directory contains the packaging metadata for creating a snap of Valkey. The standard variant includes the full suite of Valkey tools: server, CLI, benchmark, sentinel, and file-check utilities.
 For more information on snaps, visit [snapcraft.io](https://snapcraft.io/).
