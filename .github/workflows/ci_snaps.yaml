@@ -1,0 +1,71 @@
+# Copyright 2026 Canonical Ltd.
+# See LICENSE file for licensing details.
+name: Build and test snaps
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    branches:
+      - 9.0/edge
+  workflow_dispatch:
+
+jobs:
+  # ── YAML lint ─────────────────────────────────────────────────────────────
+
+  yaml-lint:
+    name: YAML lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Run yamllint
+        run: yamllint --no-warnings ./valkey/snaps/
+
+  # ── Discover snaps ────────────────────────────────────────────────────────
+
+  discover-snaps:
+    uses: ./.github/workflows/snaps-discover.yaml
+
+  # ── Build jobs (matrix over discovered snaps) ─────────────────────────────
+
+  build-and-test:
+    name: Build and test ${{ matrix.snap.name }} snap | ${{ matrix.runner.platform }}
+    runs-on: ${{ matrix.runner.label }}
+    needs: discover-snaps
+    strategy:
+      fail-fast: false
+      matrix:
+        snap: ${{ fromJson(needs.discover-snaps.outputs.snaps) }}
+        runner:
+          - label: ubuntu-26.04 # amd64
+            platform: amd64
+          - label: ubuntu-26.04-arm # arm64
+            platform: arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install snapcraft and LXD
+        run: |
+          sudo snap install lxd
+          sudo adduser "$USER" lxd
+          sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- lxd waitready
+          sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- lxd init --auto
+          # Workaround for Docker & LXD on same machine
+          sudo iptables -F FORWARD
+          sudo iptables -P FORWARD ACCEPT
+          sudo snap install snapcraft --classic
+
+      - name: snapcraft test
+        id: test
+        working-directory: ${{ matrix.snap.path }}
+        run: sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- CI=1 snapcraft test
+
+      - name: Snapcraft logs
+        if: ${{ success() || (failure() && steps.test.outcome == 'failure') }}
+        run: cat ~/.local/state/snapcraft/log/*

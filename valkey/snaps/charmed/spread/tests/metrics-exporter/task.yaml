@@ -1,0 +1,17 @@
+summary: Valkey snap metrics-exporter test
+
+execute: |
+  echo "Running metrics-exporter test..."
+  snap start valkey-charmed.metrics-exporter
+  retry=0
+  until curl -sf http://localhost:9121/metrics 2>/dev/null \
+      | grep -q redis_up; do
+    retry=$((retry + 1))
+    if [ $retry -ge 30 ]; then
+      echo "Valkey metrics-exporter did not become ready in time"
+      snap logs valkey-charmed.metrics-exporter || true
+      exit 1
+    fi
+    sleep 1
+  done
+  curl -sf http://localhost:9121/metrics
