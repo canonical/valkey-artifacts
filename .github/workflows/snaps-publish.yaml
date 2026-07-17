@@ -2,12 +2,17 @@
 # See LICENSE file for licensing details.
 name: Publish Snap
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 on:
   workflow_call:
+    secrets:
+      SNAP_STORE_TOKEN_EDGE:
+        required: true
+      CRAFT_SOURCE_STORE_CREDENTIALS:
+        required: true
+      CI_COMMITS_SSH_SIGNING_KEY:
+        required: true
+      PAT:
+        required: true
   workflow_dispatch:
 
 jobs:
@@ -37,10 +42,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        snap: ${{ fromJSON(needs.discover-snaps.outputs.snaps) }}
+        snap: ${{ fromJSON(needs.discover-snaps.outputs.non-standard-snaps) }}
     uses: canonical/data-platform-workflows/.github/workflows/release_snap_edge.yaml@v49.0.2
     with:
-      track: "9.0"
+      track: "9"
       path-to-snap-project-directory: ${{ matrix.snap.path }}
       artifact-prefix: packed-snap-${{ matrix.snap.name }}
     secrets:
@@ -48,3 +53,16 @@ jobs:
     permissions:
       actions: read # Needed for GitHub API call to get workflow version
       contents: write # Needed to create git tags
+
+  publish-standard:
+    needs:
+      - build
+    uses: ./.github/workflows/snap-standard-pr-publish.yaml
+    with:
+      snap-path: valkey/snaps/standard
+      channel: 9.1-26.04/edge
+      release-branch: release-edge
+    secrets:
+      CRAFT_SOURCE_STORE_CREDENTIALS: ${{ secrets.CRAFT_SOURCE_STORE_CREDENTIALS }}
+      CI_COMMITS_SSH_SIGNING_KEY: ${{ secrets.CI_COMMITS_SSH_SIGNING_KEY }}
+      PAT: ${{ secrets.PAT }}
