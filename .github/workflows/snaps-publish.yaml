@@ -2,10 +2,6 @@
 # See LICENSE file for licensing details.
 name: Publish Snap
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 on:
   workflow_call:
   workflow_dispatch:
