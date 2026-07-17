@@ -1,0 +1,31 @@
+# Copyright 2026 Canonical Ltd.
+# See LICENSE file for licensing details.
+name: Discover snaps
+
+on:
+  workflow_call:
+    outputs:
+      snaps:
+        description: "Discovered snap path/name list"
+        value: ${{ jobs.discover-snaps.outputs.snaps }}
+
+jobs:
+  discover-snaps:
+    runs-on: ubuntu-26.04
+    outputs:
+      snaps: ${{ steps.discover.outputs.snaps }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - id: discover
+        run: |
+          snaps=$(
+            while IFS= read -r yaml; do
+              dir="${yaml%/snap/snapcraft.yaml}"
+              name=$(yq '.name' "$yaml")
+              printf '{"path":"%s","name":"%s"}\n' "$dir" "$name"
+            done < <(find . -path '*/snap/snapcraft.yaml') \
+            | jq -cs .
+          )
+
+          echo "snaps=$snaps" >> "$GITHUB_OUTPUT"
