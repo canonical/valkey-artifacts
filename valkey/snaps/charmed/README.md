@@ -1,5 +1,5 @@
 # Valkey Charmed Snap
-[![Build and test snaps](https://github.com/canonical/valkey-artifacts/actions/workflows/ci_snaps.yaml/badge.svg)](https://github.com/canonical/valkey-artifacts/actions/workflows/ci_snaps.yaml)
+[![Publish artifacts](https://github.com/canonical/valkey-artifacts/actions/workflows/publish.yaml/badge.svg)](https://github.com/canonical/valkey-artifacts/actions/workflows/publish.yaml)
     
 This repository contains the packaging metadata for creating a snap of Valkey. 
 For more information on snaps, visit [snapcraft.io](https://snapcraft.io/). 
@@ -71,7 +71,7 @@ snapcraft test
 ```
 
 ## License
-The Charmed Valkey Snap is free software, distributed under the Apache
+The Valkey Charmed Snap is free software, distributed under the Apache
 Software License, version 2.0. See
 [LICENSE](https://github.com/canonical/valkey-artifacts/blob/main/LICENSE)
 for more information.

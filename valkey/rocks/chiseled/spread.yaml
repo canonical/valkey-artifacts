@@ -1,0 +1,52 @@
+project: chiseled
+
+backends:
+  craft:
+    type: craft
+    systems:
+      - ubuntu-26.04:
+      #- ubuntu-22.04:
+
+suites:
+  spread/general/:
+    summary: General integration tests
+
+    prepare: |
+      sudo snap install docker
+
+      # For 'rockcraft.skopeo'
+      sudo snap install --classic rockcraft
+
+      # Wait for docker daemon to come online
+      sudo apt install --yes retry
+      retry --times=10 --delay 2 -- docker run hello-world
+      sudo apt remove --yes retry
+
+      # Load the rock into docker
+      sudo rockcraft.skopeo --insecure-policy copy \
+        "oci-archive:$CRAFT_ARTIFACT" docker-daemon:chiseled:latest
+    prepare-each: |
+      docker run -d --rm -p 6379:6379 \
+        --name "${SPREAD_TASK//\//_}" chiseled:latest
+      retry=0
+      until docker exec "${SPREAD_TASK//\//_}" \
+          valkey-cli ping 2>/dev/null | grep -q PONG; do
+        retry=$((retry + 1))
+        if [ $retry -ge 30 ]; then
+          echo "Valkey server did not become ready in time"
+          docker logs "${SPREAD_TASK//\//_}" || true
+          exit 1
+        fi
+        sleep 1
+      done
+
+    restore-each: |
+      docker stop "${SPREAD_TASK//\//_}" 2>/dev/null || true
+
+    restore: |
+      docker image rm --force chiseled:latest
+
+exclude:
+  - .git
+
+kill-timeout: 1h
