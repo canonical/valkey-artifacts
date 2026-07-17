@@ -1,0 +1,68 @@
+# Copyright 2024 Canonical Ltd.
+# See LICENSE-rock file for licensing details.
+---
+name: valkey-chiseled
+base: ubuntu@26.04
+
+version: "9.0.4"
+summary: Valkey Chiseled ROCK OCI
+description: |
+  This is an OCI image that bundles Valkey together with the metrics exporter
+  in order to be used in Operators, providing automated operations
+  management from day 0 to day 2 on Valkey, on top of a Virtual Machine cluster
+  and K8s cluster. It is an open source, end-to-end, production ready data
+  platform on top of cloud native technologies.
+license: Apache-2.0
+platforms:
+  amd64:
+  arm64:
+
+run-user: _daemon_
+
+services:
+  valkey:
+    override: replace
+    startup: enabled
+    summary: Start Valkey
+    command: "valkey-server /var/lib/valkey/valkey.conf"
+
+parts:
+  valkey:
+    plugin: nil
+    stage-snaps:
+      - valkey-chiseled/9.0/edge
+    stage-packages:
+      - libatomic1
+      - openssl
+    override-stage: |
+      craftctl default
+      # stay under 80 chars
+      lib_path="${CRAFT_STAGE}/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}"
+      lib_path="${lib_path}:${CRAFT_STAGE}/usr/lib"
+      actual=$(LD_LIBRARY_PATH="${lib_path}" \
+        "${CRAFT_STAGE}/usr/bin/valkey-server" --version \
+        | grep -oP '(?<=v=)[0-9.]+')
+      if [ "$actual" != "$CRAFT_PROJECT_VERSION" ]; then
+        echo "ERROR: binary version ($actual) does not match" \
+          "declared version ($CRAFT_PROJECT_VERSION)"
+        exit 1
+      fi
+      echo "Version check passed: $actual"
+  valkey-user:
+    plugin: nil
+    after:
+      - valkey
+    override-prime: |
+      craftctl default
+      mkdir -p $CRAFT_PRIME/var/lib/valkey
+      mkdir -p $CRAFT_PRIME/var/log/valkey
+      mkdir -p $CRAFT_PRIME/run/valkey
+      cp $CRAFT_PRIME/etc/valkey/valkey.conf $CRAFT_PRIME/var/lib/valkey/
+      CONF="$CRAFT_PRIME/var/lib/valkey/valkey.conf"
+      sed -i -E '/^[[:space:]]*dir[[:space:]]/d' "$CONF"
+      echo 'dir /var/lib/valkey' >> "$CONF"
+      sed -i -E '/^[[:space:]]*daemonize[[:space:]]/d' "$CONF"
+      echo 'daemonize no' >> "$CONF"
+      chown -R 584792:584792 $CRAFT_PRIME/var/lib/valkey
+      chown -R 584792:584792 $CRAFT_PRIME/var/log/valkey
+      chown -R 584792:584792 $CRAFT_PRIME/run/valkey
