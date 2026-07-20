@@ -55,8 +55,6 @@ jobs:
       contents: write # Needed to create git tags
 
   publish-standard:
-    needs:
-      - build
     uses: ./.github/workflows/snap-standard-pr-publish.yaml
     with:
       snap-path: valkey/snaps/standard

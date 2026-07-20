@@ -87,3 +87,14 @@ jobs:
       actions: read # Needed for GitHub API call to get workflow version
       packages: write # Needed to publish to GitHub Container Registry
       contents: write # Needed to create git tags
+
+  publish-standard:
+    uses: ./.github/workflows/rock-standard-pr-publish.yaml
+    with:
+      rock-path: valkey/rocks/standard
+      channel: 9.1-26.04/edge
+      release-branch: release-edge
+    secrets:
+      CRAFT_SOURCE_STORE_CREDENTIALS: ${{ secrets.CRAFT_SOURCE_STORE_CREDENTIALS }}
+      CI_COMMITS_SSH_SIGNING_KEY: ${{ secrets.CI_COMMITS_SSH_SIGNING_KEY }}
+      PAT: ${{ secrets.PAT }}
