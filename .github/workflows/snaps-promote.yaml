@@ -1,0 +1,20 @@
+# Copyright 2026 Canonical Ltd.
+# See LICENSE file for licensing details.
+name: Promote snaps
+
+on:
+  pull_request:
+
+jobs:
+  promote:
+    name: Promote snaps
+    uses: canonical/data-platform-workflows/.github/workflows/_promote_snaps.yaml@sinclert/10694/promote-snaps
+    with:
+      track: '9.0'
+      from-risk: edge
+      to-risk: beta
+      path-to-snap-directory: valkey/snaps/charmed/snap
+    secrets:
+      snap-store-token: ${{ secrets.SNAP_STORE_TOKEN_EDGE }}
+    permissions:
+      contents: write  # Needed to edit GitHub releases
