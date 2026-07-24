@@ -7,14 +7,14 @@ concurrency:
 on:
   push:
     branches:
-      - 9.0/edge
+      - 9/edge
   workflow_dispatch:
 
 env:
   # Store channel the rocks stage their snaps from. Each rock stages the snap
   # of the same name, so the rock build below picks up the revision published
   # in this same run, once it is live on the channel.
-  CHANNEL: 9.0/edge
+  CHANNEL: 9/edge
 
 jobs:
   discover-rocks:
@@ -89,3 +89,4 @@ jobs:
       actions: read # Needed for GitHub API call to get workflow version
       packages: write # Needed to publish to GitHub Container Registry
       contents: write # Needed to create git tags
+      security-events: write # Needed for Trivy SARIF upload (rocks-scan)

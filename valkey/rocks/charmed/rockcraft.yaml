@@ -3,7 +3,7 @@
 ---
 name: valkey-charmed
 base: ubuntu@26.04
-version: "9.0.4"
+version: "9.1.0"
 summary: Valkey Charmed ROCK OCI
 description: |
   This is an OCI image that bundles Valkey together with the metrics exporter
@@ -39,7 +39,7 @@ parts:
   valkey:
     plugin: nil
     stage-snaps:
-      - valkey-charmed/9.0/edge
+      - valkey-charmed/9/edge
     stage-packages:
       - libatomic1
       - openssl

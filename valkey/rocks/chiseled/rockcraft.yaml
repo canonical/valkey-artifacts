@@ -3,8 +3,7 @@
 ---
 name: valkey-chiseled
 base: ubuntu@26.04
-
-version: "9.0.4"
+version: "9.1.0"
 summary: Valkey Chiseled ROCK OCI
 description: |
   This is an OCI image that bundles Valkey together with the metrics exporter
@@ -30,7 +29,7 @@ parts:
   valkey:
     plugin: nil
     stage-snaps:
-      - valkey-chiseled/9.0/edge
+      - valkey-chiseled/9/edge
     stage-packages:
       - libatomic1
       - openssl

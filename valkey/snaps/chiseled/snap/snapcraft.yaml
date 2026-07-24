@@ -1,6 +1,6 @@
 name: valkey-chiseled
 base: core26
-version: "9.0.4"
+version: "9.1.0"
 summary: "Valkey: open source, in memory datastore as a snap"
 description: |
   A flexible distributed key-value database that is optimized
@@ -44,10 +44,10 @@ apps:
 
 parts:
   valkey:
-    plugin: nil
+    plugin: dump
+    source: bld:valkey
+    source-channel: 9.1-26.04/edge
     stage-packages:
-      - valkey-server
-      - valkey-tools
       - util-linux
     override-stage: |
       craftctl default

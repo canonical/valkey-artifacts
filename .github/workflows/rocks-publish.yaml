@@ -68,6 +68,7 @@ jobs:
       contents: read
       security-events: write
 
+  # Publish all rocks to GHCR
   publish:
     name: Publish rock  | ${{ matrix.rock.name }}
     needs:
@@ -82,8 +83,24 @@ jobs:
     uses: canonical/data-platform-workflows/.github/workflows/release_rock_edge.yaml@v49.0.2
     with:
       path-to-rock-directory: ${{ matrix.rock.path }}
-      artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
+      artifact-prefix: packed-rock-${{ matrix.rock.name }}
     permissions:
       actions: read # Needed for GitHub API call to get workflow version
       packages: write # Needed to publish to GitHub Container Registry
       contents: write # Needed to create git tags
+
+  # addionally to releasing on GHCR we release through sd machinery
+  publish-standard:
+    uses: ./.github/workflows/rock-standard-pr-publish.yaml
+    needs:
+      - build
+      - test
+      - scan
+    with:
+      rock-path: valkey/rocks/standard
+      channel: 9.1-26.04/edge
+      release-branch: release-edge
+    secrets:
+      CRAFT_SOURCE_STORE_CREDENTIALS: ${{ secrets.CRAFT_SOURCE_STORE_CREDENTIALS }}
+      CI_COMMITS_SSH_SIGNING_KEY: ${{ secrets.CI_COMMITS_SSH_SIGNING_KEY }}
+      PAT: ${{ secrets.PAT }}
