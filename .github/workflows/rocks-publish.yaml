@@ -68,6 +68,7 @@ jobs:
       contents: read
       security-events: write
 
+  # Publish all rocks to GHCR
   publish:
     name: Publish rock  | ${{ matrix.rock.name }}
     needs:
@@ -88,8 +89,13 @@ jobs:
       packages: write # Needed to publish to GitHub Container Registry
       contents: write # Needed to create git tags
 
+  # addionally to releasing on GHCR we release through sd machinery
   publish-standard:
     uses: ./.github/workflows/rock-standard-pr-publish.yaml
+    needs:
+      - build
+      - test
+      - scan
     with:
       rock-path: valkey/rocks/standard
       channel: 9.1-26.04/edge

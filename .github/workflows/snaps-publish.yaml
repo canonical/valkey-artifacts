@@ -56,6 +56,8 @@ jobs:
 
   publish-standard:
     uses: ./.github/workflows/snap-standard-pr-publish.yaml
+    needs:
+      - build
     with:
       snap-path: valkey/snaps/standard
       channel: 9.1-26.04/edge
