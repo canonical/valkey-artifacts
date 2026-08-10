@@ -20,71 +20,19 @@ jobs:
     uses: ./.github/workflows/snaps-discover.yaml
 
   build:
-    name: Build ${{ matrix.snap.name }} snap | ${{ matrix.runner.platform }}
-    runs-on: ${{ matrix.runner.label }}
+    name: Build snap | ${{ matrix.snap.name }}
     needs: discover-snaps
     strategy:
       fail-fast: false
       matrix:
-        snap: ${{ fromJson(needs.discover-snaps.outputs.snaps) }}
-        runner:
-          - label: ubuntu-26.04 # amd64
-            platform: amd64
-          - label: ubuntu-26.04-arm # arm64
-            platform: arm64
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install snapcraft and LXD
-        run: |
-          sudo snap install lxd
-          sudo adduser "$USER" lxd
-          sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- lxd waitready
-          sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- lxd init --auto
-          # Workaround for Docker & LXD on same machine
-          sudo iptables -F FORWARD
-          sudo iptables -P FORWARD ACCEPT
-          sudo snap install snapcraft --classic --channel=latest/beta
-          sudo snap install craft-sd --channel=latest/beta
-          sudo snap install bld --edge
-
-      - name: snapcraft build
-        id: test
-        working-directory: ${{ matrix.snap.path }}
-        run: sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- CRAFT_SD_ENV=production CI=1 SNAPCRAFT_BUILD_INFO=1 snapcraft pack -v
-
-      - name: Snapcraft logs
-        if: ${{ success() || (failure() && steps.test.outcome == 'failure') }}
-        run: cat ~/.local/state/snapcraft/log/*
-
-      - name: Upload snapcraft logs
-        if: ${{ success() || failure() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: snapcraft-test-logs-${{ matrix.snap.name }}--platform-${{ matrix.runner.platform }}
-          path: ~/.local/state/snapcraft/log/*
-          if-no-files-found: ignore
-          retention-days: 14
-
-      # Matches the path-in-artifact naming used by data-platform-workflows'
-      # release_snap_pr.yaml so publish-snaps can find this artifact.
-      - run: touch .empty
-      - name: Compute path in artifact
-        id: path-in-artifact
-        run: |
-          path="${{ matrix.snap.path }}"
-          path="${path#./}"
-          echo "path=${path//\//-}" >> "$GITHUB_OUTPUT"
-
-      - name: Upload snap package
-        uses: actions/upload-artifact@v4
-        with:
-          name: packed-snap-${{ matrix.snap.name }}-${{ steps.path-in-artifact.outputs.path }}--platform-${{ matrix.runner.platform }}
-          path: |
-            ${{ matrix.snap.path }}/*.snap
-            .empty
-          include-hidden-files: true # For `.empty`
-          if-no-files-found: error
+        snap: ${{ fromJSON(needs.discover-snaps.outputs.snaps) }}
+    uses: skourta/data-platform-workflows/.github/workflows/build_snap.yaml@sd-snap-builds
+    with:
+      path-to-snap-project-directory: ${{ matrix.snap.path }}
+      artifact-prefix: packed-snap-${{ matrix.snap.name }}
+    permissions:
+      actions: read
+      contents: read
 
   publish:
     name: Publish Snap | ${{ matrix.snap.name }}
