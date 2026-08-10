@@ -36,7 +36,7 @@ jobs:
       current-revisions: ${{ steps.current-revisions.outputs.current-revisions }}
     env:
       ROCKS: ${{ needs.discover-rocks.outputs.rocks }}
-      SNAPS: ${{ needs.discover-snaps.outputs.snaps }}
+      SNAPS: ${{ needs.discover-snaps.outputs.non-standard-snaps }}
       SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_TOKEN_EDGE }}
     steps:
       - uses: actions/checkout@v6

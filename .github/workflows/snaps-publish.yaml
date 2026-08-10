@@ -25,8 +25,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        snap: ${{ fromJSON(needs.discover-snaps.outputs.snaps) }}
-    uses: skourta/data-platform-workflows/.github/workflows/build_snap.yaml@sd-snap-builds
+        snap: ${{ fromJSON(needs.discover-snaps.outputs.non-standard-snaps) }}
+    uses: canonical/data-platform-workflows/.github/workflows/build_snap.yaml@v49.0.2
     with:
       path-to-snap-project-directory: ${{ matrix.snap.path }}
       artifact-prefix: packed-snap-${{ matrix.snap.name }}
