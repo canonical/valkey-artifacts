@@ -30,6 +30,7 @@ jobs:
     with:
       path-to-snap-project-directory: ${{ matrix.snap.path }}
       artifact-prefix: packed-snap-${{ matrix.snap.name }}
+      sd-build: true
     permissions:
       actions: read
       contents: read
