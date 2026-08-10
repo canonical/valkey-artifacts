@@ -14,6 +14,9 @@ on:
         description: Snap Store channel the rocks should stage snaps from.
         required: true
         type: string
+    secrets:
+      NVD_API_KEY:
+        required: false
 
 jobs:
   discover-rocks:
@@ -80,3 +83,19 @@ jobs:
       actions: read
       contents: read
       security-events: write
+
+  # The test-rocks job already uploaded the rock packages as artifacts, reuse
+  # them for the secscan vulnerability scan.
+  secscan-rocks:
+    name: Secscan rocks
+    needs:
+      - discover-rocks
+      - test-rocks
+    uses: ./.github/workflows/secscan-scan.yaml
+    with:
+      artifacts: ${{ needs.discover-rocks.outputs.rocks }}
+      artifact-kind: rock
+      artifact-prefix: packed-rock
+      release-channel: edge
+    secrets:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}

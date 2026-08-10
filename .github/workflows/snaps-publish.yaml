@@ -25,11 +25,26 @@ jobs:
       actions: read
       contents: read
 
+  secscan:
+    name: Secscan snaps
+    needs:
+      - discover-snaps
+      - build
+    uses: ./.github/workflows/secscan-scan.yaml
+    with:
+      artifacts: ${{ needs.discover-snaps.outputs.snaps }}
+      artifact-kind: snap
+      artifact-prefix: packed-snap
+      release-channel: edge
+    secrets:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
   publish:
     name: Publish Snap | ${{ matrix.snap.name }}
     needs:
       - discover-snaps
       - build
+      - secscan
     strategy:
       fail-fast: false
       matrix:

@@ -7,6 +7,8 @@ on:
     secrets:
       SNAP_STORE_TOKEN_EDGE:
         required: true
+      NVD_API_KEY:
+        required: false
 
 jobs:
   discover-snaps:
@@ -77,11 +79,28 @@ jobs:
           include-hidden-files: true # For `.empty`
           if-no-files-found: error
 
+  # The test-snaps job already uploaded the snap packages as artifacts, reuse
+  # them for the secscan vulnerability scan before publishing to the PR branch.
+  secscan:
+    name: Secscan snaps
+    needs:
+      - discover-snaps
+      - test-snaps
+    uses: ./.github/workflows/secscan-scan.yaml
+    with:
+      artifacts: ${{ needs.discover-snaps.outputs.snaps }}
+      artifact-kind: snap
+      artifact-prefix: packed-snap
+      release-channel: edge
+    secrets:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
   publish-snaps:
     name: Publish snap to PR branch | ${{ matrix.snap.name }}
     needs:
       - discover-snaps
       - test-snaps
+      - secscan
     strategy:
       fail-fast: false
       matrix:

@@ -68,6 +68,22 @@ jobs:
       contents: read
       security-events: write
 
+  # Secscan runs against the same packed-rock artifacts uploaded by the build job
+  secscan:
+    name: Secscan rocks
+    needs:
+      - discover-rocks
+      - build
+      - test
+    uses: ./.github/workflows/secscan-scan.yaml
+    with:
+      artifacts: ${{ needs.discover-rocks.outputs.rocks }}
+      artifact-kind: rock
+      artifact-prefix: packed-rock
+      release-channel: edge
+    secrets:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
   publish:
     name: Publish rock  | ${{ matrix.rock.name }}
     needs:
@@ -75,6 +91,7 @@ jobs:
       - build
       - test
       - scan
+      - secscan
     strategy:
       fail-fast: false
       matrix:

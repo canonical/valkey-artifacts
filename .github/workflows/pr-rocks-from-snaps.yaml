@@ -48,6 +48,7 @@ jobs:
     uses: ./.github/workflows/snaps-pr-publish.yaml
     secrets:
       SNAP_STORE_TOKEN_EDGE: ${{ secrets.SNAP_STORE_TOKEN_EDGE }}
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
     permissions:
       actions: read
       contents: read
@@ -79,6 +80,8 @@ jobs:
     uses: ./.github/workflows/rocks-pr-tests.yaml
     with:
       snap-channel: 9.0/edge/pr-${{ github.event.pull_request.number }}
+    secrets:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
     permissions:
       actions: read
       contents: read

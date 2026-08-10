@@ -1,0 +1,122 @@
+# Copyright 2026 Canonical Ltd.
+# See LICENSE file for licensing details.
+name: Secscan vulnerability scan
+
+on:
+  workflow_call:
+    inputs:
+      artifacts:
+        description: JSON list of {name, path} artifacts to scan
+        required: true
+        type: string
+      artifact-kind:
+        description: Kind of artifact to scan (snap or rock)
+        required: true
+        type: string
+      artifact-prefix:
+        description: Prefix of the GitHub artifact holding the packed file
+        default: packed
+        required: false
+        type: string
+      product-name:
+        description: SSDLC v1.2 product name the scan is submitted for
+        default: valkey
+        required: false
+        type: string
+      cycle:
+        description: SSDLC v1.2 cycle the scan is submitted for
+        default: "26.04"
+        required: false
+        type: string
+      release-channel:
+        description: SSDLC v1.2 release channel of the scanned artifacts
+        default: edge
+        required: false
+        type: string
+    secrets:
+      NVD_API_KEY:
+        description: API key for the NVD database, used to enrich results with patch information
+        required: false
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  secscan:
+    name: Secscan ${{ inputs.artifact-kind }} | ${{ matrix.artifact.name }} | ${{ matrix.platform }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        artifact: ${{ fromJSON(inputs.artifacts) }}
+        platform:
+          - amd64
+          - arm64
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Prepare scan metadata
+        id: metadata
+        env:
+          ARTIFACT_PREFIX: ${{ inputs.artifact-prefix }}
+          ARTIFACT_KIND: ${{ inputs.artifact-kind }}
+          NAME: ${{ matrix.artifact.name }}
+          ARTIFACT_PATH: ${{ matrix.artifact.path }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          path="${ARTIFACT_PATH#./}"
+          echo "artifact_name=${ARTIFACT_PREFIX}-${NAME}-${path//\//-}--platform-${PLATFORM}" >> "$GITHUB_OUTPUT"
+          if [ "$ARTIFACT_KIND" = "snap" ]; then
+            craft_file="${ARTIFACT_PATH}/snap/snapcraft.yaml"
+          else
+            craft_file="${ARTIFACT_PATH}/rockcraft.yaml"
+          fi
+          echo "version=$(yq -r '.version' "$craft_file")" >> "$GITHUB_OUTPUT"
+
+      - name: Download built ${{ inputs.artifact-kind }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.metadata.outputs.artifact_name }}
+          path: scan-target
+
+      - name: Locate packed file
+        id: file
+        env:
+          ARTIFACT_KIND: ${{ inputs.artifact-kind }}
+        run: |
+          if [ "$ARTIFACT_KIND" = "snap" ]; then
+            pattern="*.snap"
+          else
+            pattern="*.rock"
+          fi
+          file=$(find scan-target -type f -name "$pattern" | head -n1)
+          if [ -z "$file" ]; then
+            echo "No $pattern package found in the downloaded artifact"
+            exit 1
+          fi
+          echo "path=$(realpath "$file")" >> "$GITHUB_OUTPUT"
+
+      - name: Run secscan
+        id: secscan
+        uses: skourta/data-platform-workflows/run-secscan@secscan
+        with:
+          snap-file: ${{ inputs.artifact-kind == 'snap' && steps.file.outputs.path || '' }}
+          snap-version: ${{ inputs.artifact-kind == 'snap' && steps.metadata.outputs.version || '' }}
+          oci-image-file: ${{ inputs.artifact-kind == 'rock' && steps.file.outputs.path || '' }}
+          oci-image-version: ${{ inputs.artifact-kind == 'rock' && steps.metadata.outputs.version || '' }}
+          product-name: ${{ inputs.product-name }}
+          cycle: ${{ inputs.cycle }}
+          release-channel: ${{ inputs.release-channel }}
+          nvd-api-key: ${{ secrets.NVD_API_KEY }}
+
+      - name: Upload secscan results
+        if: ${{ always() && steps.secscan.outputs.results-location != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: secscan-results-${{ inputs.artifact-kind }}-${{ matrix.artifact.name }}-${{ matrix.platform }}
+          path: ${{ steps.secscan.outputs.results-location }}
+          if-no-files-found: warn
+          retention-days: 90
