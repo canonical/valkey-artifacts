@@ -30,8 +30,6 @@ jobs:
     with:
       path-to-snap-project-directory: ${{ matrix.snap.path }}
       artifact-prefix: packed-snap-${{ matrix.snap.name }}
-      sd-build: true
-      snapcraft-snap-channel: beta
     permissions:
       actions: read
       contents: read
