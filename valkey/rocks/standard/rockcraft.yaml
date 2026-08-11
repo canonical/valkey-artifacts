@@ -2,8 +2,8 @@
 # See LICENSE-rock file for licensing details.
 ---
 name: valkey
-base: ubuntu@26.04
-version: "9.0.4"
+base: ubuntu@24.04
+version: "7.2.13"
 summary: Valkey ROCK OCI
 description: |
   This is an OCI image that bundles Valkey together with the metrics exporter
@@ -16,7 +16,13 @@ platforms:
   amd64:
   arm64:
 
-run-user: _daemon_
+package-repositories:
+  - type: apt
+    components: [main]
+    suites: [noble]
+    key-id: 6676E3F1A76ADBE4488944BF7D1A96D4BF78C79E
+    url: |
+      https://ppa.launchpadcontent.net/data-platform/prometheus-redis-exporter/ubuntu
 
 services:
   valkey:
@@ -24,17 +30,25 @@ services:
     startup: enabled
     summary: Start Valkey
     command: "valkey-server /var/lib/valkey/valkey.conf"
+    user: valkey
   sentinel:
     override: replace
     startup: disabled
     summary: Start Valkey Sentinel
     command: "valkey-sentinel /var/lib/valkey/sentinel.conf"
+    user: valkey
+  redis_exporter:
+    override: replace
+    startup: enabled
+    summary: Start Metrics Exporter
+    command: "prometheus-redis-exporter"
+    user: valkey
 
 parts:
   valkey:
     plugin: nil
     stage-snaps:
-      - valkey/9.0/edge
+      - valkey/7/edge
     stage-packages:
       - libatomic1
       - openssl
@@ -56,6 +70,10 @@ parts:
     plugin: nil
     after:
       - valkey
+    overlay-script: |
+      # Create a user in the $CRAFT_OVERLAY chroot
+      groupadd -R $CRAFT_OVERLAY -g  584788 valkey
+      useradd -R $CRAFT_OVERLAY -M -r -g valkey -u 584788 valkey
     override-prime: |
       mkdir -p $CRAFT_PRIME/var/lib/valkey
       mkdir -p $CRAFT_PRIME/var/log/valkey
@@ -73,7 +91,7 @@ parts:
       echo 'dir /var/lib/valkey' >> "$SCONF"
       sed -i -E '/^[[:space:]]*daemonize[[:space:]]/d' "$SCONF"
       echo 'daemonize no' >> "$SCONF"
-      chown -R 584792:584792 $CRAFT_PRIME/var/lib/valkey
-      chown -R 584792:584792 $CRAFT_PRIME/var/log/valkey
-      chown -R 584792:584792 $CRAFT_PRIME/run/valkey
-      chown -R 584792:584792 $CRAFT_PRIME/run/sentinel
+      chown -R 584788:584788 $CRAFT_PRIME/var/lib/valkey
+      chown -R 584788:584788 $CRAFT_PRIME/var/log/valkey
+      chown -R 584788:584788 $CRAFT_PRIME/run/valkey
+      chown -R 584788:584788 $CRAFT_PRIME/run/sentinel

@@ -1,6 +1,6 @@
 name: valkey
-base: core26
-version: "9.0.4"
+base: core24
+version: "7.2.13"
 summary: "Valkey: open source, in memory datastore as a snap"
 description: |
   A flexible distributed key-value database that is optimized
