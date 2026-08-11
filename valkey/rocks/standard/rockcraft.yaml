@@ -95,3 +95,11 @@ parts:
       chown -R 584788:584788 $CRAFT_PRIME/var/log/valkey
       chown -R 584788:584788 $CRAFT_PRIME/run/valkey
       chown -R 584788:584788 $CRAFT_PRIME/run/sentinel
+  deb-security-manifest:
+    plugin: nil
+    after:
+      - valkey-user
+    override-prime: |
+      set -x
+      mkdir -p $CRAFT_PRIME/usr/share/rocks/
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > $CRAFT_PRIME/usr/share/rocks/dpkg.query
