@@ -26,8 +26,8 @@ upstream sources are pulled in at build time via `stage-packages` /
     │   ├── rocks-discover.yaml     # discovers every */rockcraft.yaml to build a matrix
     │   ├── pr-rocks-from-snaps.yaml  # PR: publish snaps to a PR channel, then build/test rocks against them
     │   ├── snaps-pr-publish.yaml   # builds and publishes snaps to a PR channel
-    │   ├── rocks-pr-tests.yaml     # builds, tests and Trivy-scans rocks against a given snap channel
-    │   ├── rocks-scan.yaml         # Trivy vulnerability scan + SBOM for a built rock
+    │   ├── rocks-pr-tests.yaml     # builds, tests and secscan-scans rocks against a given snap channel
+    │   ├── secscan-scan.yaml       # secscan vulnerability scan for a built snap or rock
     │   ├── publish.yaml            # release: publish snaps to edge, then build/test/scan/publish rocks to GHCR
     │   ├── snaps-publish.yaml      # builds and publishes snaps to the Snap Store edge channel
     │   ├── rocks-publish.yaml      # builds, tests, scans and publishes rocks to GHCR
@@ -214,21 +214,29 @@ On every pull request:
 
 1. `lint.yaml` runs `yamllint` over `valkey/snaps/` and `valkey/rocks/`.
 2. `pr-rocks-from-snaps.yaml` orchestrates the rest:
-   - `snaps-pr-publish.yaml` builds every discovered snap and publishes it to
-     a PR-scoped Snap Store channel (`9.0/edge/pr-<number>`).
+   - `snaps-pr-publish.yaml` builds every discovered snap, secscan-scans it
+     (`secscan-scan.yaml`) and publishes it to a PR-scoped Snap Store channel
+     (`9.0/edge/pr-<number>`).
    - Once the new snap revisions are live, `rocks-pr-tests.yaml` retargets
      each rock's `stage-snaps` at that PR channel, builds and tests the rock
      (via `.github/actions/test-rock`) on both `amd64` and `arm64`, then
-     Trivy-scans it (`rocks-scan.yaml`).
+     secscan-scans it (`secscan-scan.yaml`).
 
 On every push to a release branch (e.g. `9.0/edge`), `publish.yaml`
 orchestrates the same shape for real releases:
 
-1. `snaps-publish.yaml` builds and publishes every snap to the Snap Store
-   edge channel.
+1. `snaps-publish.yaml` builds, secscan-scans and publishes every snap to the
+   Snap Store edge channel.
 2. Once those revisions are live, `rocks-publish.yaml` builds, tests, and
-   Trivy-scans every rock (staging the snap just published), then publishes
-   it to GHCR.
+   secscan-scans every rock (staging the snap just published), then
+   publishes it to GHCR.
+
+Secscan scans use the `run-secscan` action from
+[data-platform-workflows](https://github.com/skourta/data-platform-workflows/tree/secscan)
+and submit results for SSDLC (product `valkey`, cycle `26.04`, channel
+`edge`). Scan reports are uploaded as `secscan-results-*` workflow artifacts.
+Set the optional `NVD_API_KEY` repository secret to enrich results with patch
+information without hitting NVD rate limits.
 
 ## License
 

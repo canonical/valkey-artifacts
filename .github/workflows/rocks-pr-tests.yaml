@@ -3,7 +3,7 @@
 
 # Build and test rocks against snaps published from a pull request.
 # Each rock is retargeted to the PR snap channel, tested on amd64 and arm64,
-# uploaded as a packed-rock artifact, and scanned by Trivy before the workflow passes.
+# uploaded as a packed-rock artifact, and scanned by secscan before the workflow passes.
 
 name: Rock tests on PR
 
@@ -63,26 +63,12 @@ jobs:
           path="${path#./}"
           echo "path=${path//\//-}" >> "$GITHUB_OUTPUT"
 
-      - name: Upload rock for Trivy
+      - name: Upload rock for secscan
         uses: actions/upload-artifact@v4
         with:
           name: packed-rock-${{ matrix.rock.name }}-${{ steps.path-in-artifact.outputs.path }}--platform-${{ matrix.runner.platform }}
           path: ${{ matrix.rock.path }}/*.rock
           if-no-files-found: error
-
-  scan-rocks:
-    name: Trivy scan
-    needs:
-      - discover-rocks
-      - test-rocks
-    uses: ./.github/workflows/rocks-scan.yaml
-    with:
-      rocks: ${{ needs.discover-rocks.outputs.rocks }}
-    secrets: inherit
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
 
   # The test-rocks job already uploaded the rock packages as artifacts, reuse
   # them for the secscan vulnerability scan.
