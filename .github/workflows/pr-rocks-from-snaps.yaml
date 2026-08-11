@@ -10,7 +10,7 @@ on:
   pull_request:
 
 env:
-  CHANNEL: 9.0/edge/pr-${{ github.event.pull_request.number }}
+  CHANNEL: 7/edge/pr-${{ github.event.pull_request.number }}
 
 jobs:
   discover-rocks:
@@ -78,7 +78,7 @@ jobs:
     needs: wait-for-snap-revision
     uses: ./.github/workflows/rocks-pr-tests.yaml
     with:
-      snap-channel: 9.0/edge/pr-${{ github.event.pull_request.number }}
+      snap-channel: 7/edge/pr-${{ github.event.pull_request.number }}
     permissions:
       actions: read
       contents: read
