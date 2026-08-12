@@ -26,7 +26,7 @@ suites:
       sudo rockcraft.skopeo --insecure-policy copy \
         "oci-archive:$CRAFT_ARTIFACT" docker-daemon:valkey:latest
     prepare-each: |
-      docker run -d --rm -p 6379:6379 \
+      docker run -d --rm -p 6379:6379 -p 9121:9121 \
         --name "${SPREAD_TASK//\//_}" valkey:latest
       retry=0
       until docker exec "${SPREAD_TASK//\//_}" \
