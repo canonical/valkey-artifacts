@@ -98,14 +98,9 @@ parts:
     plugin: nil
     after:
       - valkey-user
+    # yamllint disable rule:line-length
     override-prime: |
       set -x
       mkdir -p $CRAFT_PRIME/usr/share/rocks/
-      (echo "# os-release" && cat /etc/os-release \
-        && echo "# dpkg-query" \
-        && dpkg-query -f '${db:Status-Abbrev},'\
-        '${binary:Package},'\
-        '${Version},'\
-        '${source:Package},'\
-        '${Source:Version}\n' -W) \
-        > $CRAFT_PRIME/usr/share/rocks/dpkg.query
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > $CRAFT_PRIME/usr/share/rocks/dpkg.query
+    # yamllint enable rule:line-length
