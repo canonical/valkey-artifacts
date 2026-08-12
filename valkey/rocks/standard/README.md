@@ -32,6 +32,18 @@ rockcraft.skopeo --insecure-policy copy oci-archive:valkey*.rock docker-daemon:v
 docker run --rm -it valkey:<tag>
 ```
 
+## Services
+The rock runs its services as the `valkey` user (UID/GID 584788):
+
+| Service           | State             | Command                                      |
+| ----------------- | ----------------- | -------------------------------------------- |
+| `valkey`          | enabled           | `valkey-server /var/lib/valkey/valkey.conf`  |
+| `sentinel`        | disabled          | `valkey-sentinel /var/lib/valkey/sentinel.conf` |
+| `redis_exporter`  | enabled           | `prometheus-redis-exporter`                  |
+
+The metrics exporter is sourced as a deb from the
+[data-platform/prometheus-redis-exporter PPA](https://launchpad.net/~data-platform/+archive/ubuntu/prometheus-redis-exporter).
+
 ## License:
 The Valkey rock is free software, distributed under the Apache Software License, version 2.0. See licenses for 
 more information.
