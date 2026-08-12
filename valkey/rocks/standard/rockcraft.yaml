@@ -51,6 +51,7 @@ parts:
     stage-packages:
       - libatomic1
       - openssl
+      - prometheus-redis-exporter
     override-stage: |
       craftctl default
       # stay under 80 chars
