@@ -2,7 +2,8 @@
 # See LICENSE-rock file for licensing details.
 ---
 name: valkey
-base: ubuntu@26.04
+base: bare
+build-base: ubuntu@26.04
 version: "9.1.0"
 summary: Valkey ROCK OCI
 description: |
@@ -38,6 +39,8 @@ parts:
     stage-packages:
       - libatomic1
       - openssl
+      # provides the standard /var/run symlink, missing on bare base
+      - base-files
     override-stage: |
       craftctl default
       # stay under 80 chars
@@ -68,11 +71,17 @@ parts:
       echo 'dir /var/lib/valkey' >> "$CONF"
       sed -i -E '/^[[:space:]]*daemonize[[:space:]]/d' "$CONF"
       echo 'daemonize no' >> "$CONF"
+      # default pidfile (/var/run/valkey_6379.pid) is not writable by
+      # _daemon_; store it in the service's own run dir instead
+      sed -i -E '/^[[:space:]]*pidfile[[:space:]]/d' "$CONF"
+      echo 'pidfile /run/valkey/valkey.pid' >> "$CONF"
       SCONF="$CRAFT_PRIME/var/lib/valkey/sentinel.conf"
       sed -i -E '/^[[:space:]]*dir[[:space:]]/d' "$SCONF"
       echo 'dir /var/lib/valkey' >> "$SCONF"
       sed -i -E '/^[[:space:]]*daemonize[[:space:]]/d' "$SCONF"
       echo 'daemonize no' >> "$SCONF"
+      sed -i -E '/^[[:space:]]*pidfile[[:space:]]/d' "$SCONF"
+      echo 'pidfile /run/sentinel/valkey-sentinel.pid' >> "$SCONF"
       chown -R 584792:584792 $CRAFT_PRIME/var/lib/valkey
       chown -R 584792:584792 $CRAFT_PRIME/var/log/valkey
       chown -R 584792:584792 $CRAFT_PRIME/run/valkey
