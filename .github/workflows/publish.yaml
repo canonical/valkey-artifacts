@@ -7,14 +7,14 @@ concurrency:
 on:
   push:
     branches:
-      - 9.0/edge
+      - 7/edge
   workflow_dispatch:
 
 env:
   # Store channel the rocks stage their snaps from. Each rock stages the snap
   # of the same name, so the rock build below picks up the revision published
   # in this same run, once it is live on the channel.
-  CHANNEL: 9.0/edge
+  CHANNEL: 7/edge
 
 jobs:
   discover-rocks:

@@ -1,5 +1,0 @@
-summary: Valkey snap smoke test
-
-execute: |
-  echo "Running smoke test..."
-  valkey-charmed.cli info

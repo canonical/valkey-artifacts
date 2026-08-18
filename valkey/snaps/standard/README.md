@@ -62,7 +62,7 @@ disables confinement checks entirely, so don't use it to validate the final
 ## Testing the Snap
 This variant ships a [spread](https://github.com/canonical/spread) suite
 covering the `smoke` and `sentinel` apps, run against a real `craft` (LXD)
-backend on `ubuntu-26.04`:
+backend on `ubuntu-24.04`:
 
 ```bash
 snapcraft test

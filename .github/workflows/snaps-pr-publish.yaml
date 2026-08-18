@@ -21,10 +21,8 @@ jobs:
       matrix:
         snap: ${{ fromJson(needs.discover-snaps.outputs.snaps) }}
         runner:
-          - label: ubuntu-26.04 # amd64
+          - label: ubuntu-24.04 # amd64
             platform: amd64
-          - label: ubuntu-26.04-arm # arm64
-            platform: arm64
     steps:
       - uses: actions/checkout@v4
 
@@ -88,7 +86,7 @@ jobs:
         snap: ${{ fromJSON(needs.discover-snaps.outputs.snaps) }}
     uses: canonical/data-platform-workflows/.github/workflows/release_snap_pr.yaml@v49.0.2
     with:
-      track: "9.0"
+      track: "7"
       path-to-snap-project-directory: ${{ matrix.snap.path }}
       artifact-prefix: packed-snap-${{ matrix.snap.name }}
     secrets:
