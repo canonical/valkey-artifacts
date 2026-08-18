@@ -19,7 +19,7 @@ jobs:
       snaps: ${{ steps.discover.outputs.snaps }}
       non-standard-snaps: ${{ steps.discover.outputs.non-standard-snaps }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - id: discover
         run: |

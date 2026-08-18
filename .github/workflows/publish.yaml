@@ -39,7 +39,7 @@ jobs:
       SNAPS: ${{ needs.discover-snaps.outputs.non-standard-snaps }}
       SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_TOKEN_EDGE }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install snapcraft
         run: sudo snap install snapcraft --classic
@@ -54,7 +54,6 @@ jobs:
     uses: ./.github/workflows/snaps-publish.yaml
     secrets: inherit
     permissions:
-      actions: read # Needed for GitHub API call to get workflow version
       contents: write # Needed to create git tags
 
   # 3. Wait until every snap that backs a rock has a newer revision live on the
@@ -70,7 +69,7 @@ jobs:
       CURRENT_REVISIONS: ${{ needs.snapshot-current-snap-revisions.outputs.current-revisions }}
       SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_TOKEN_EDGE }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install snapcraft
         run: sudo snap install snapcraft --classic
@@ -86,7 +85,7 @@ jobs:
     uses: ./.github/workflows/rocks-publish.yaml
     secrets: inherit
     permissions:
-      actions: read # Needed for GitHub API call to get workflow version
+      actions: read # Needed to download rock artifacts for Trivy
       packages: write # Needed to publish to GitHub Container Registry
       contents: write # Needed to create git tags
       security-events: write # Needed for Trivy SARIF upload (rocks-scan)
