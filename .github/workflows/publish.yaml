@@ -79,7 +79,7 @@ jobs:
         run: .github/scripts/wait-for-snap-revisions.sh
 
   # 4. Build, test, scan and publish the rocks. Publish only happens if build,
-  #    test and secscan scan all pass (inside rocks-publish.yaml).
+  #    test, Trivy and secscan all pass (inside rocks-publish.yaml).
   publish-rock:
     name: Build, test and publish rocks
     needs: wait-for-snap-revision
@@ -89,3 +89,4 @@ jobs:
       actions: read # Needed for GitHub API call to get workflow version
       packages: write # Needed to publish to GitHub Container Registry
       contents: write # Needed to create git tags
+      security-events: write # Needed for Trivy SARIF upload (rocks-scan)
