@@ -16,7 +16,7 @@ on:
 jobs:
   scan:
     name: Trivy scan | ${{ matrix.rock.name }} | ${{ matrix.platform }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -30,7 +30,7 @@ jobs:
       security-events: write # Required for uploading Trivy SARIF results
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Prepare scan metadata
         id: scan-metadata
@@ -52,7 +52,7 @@ jobs:
           sudo snap install rockcraft --classic --edge
 
       - name: Download built rock
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ steps.scan-metadata.outputs.artifact_name }}
 
@@ -77,7 +77,7 @@ jobs:
           echo "ROCK_NAME=${NAME}" >> "$GITHUB_ENV"
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE_REF }}
           format: sarif
@@ -91,7 +91,7 @@ jobs:
           sarif_file: trivy-results-${{ matrix.rock.name }}-${{ steps.scan-metadata.outputs.scan_suffix }}.sarif
 
       - name: Generate SBOM
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: image
           format: spdx-json
@@ -102,7 +102,7 @@ jobs:
           scanners: vuln
 
       - name: Upload trivy report as a Github artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-sbom-report-${{ matrix.rock.name }}-${{ steps.scan-metadata.outputs.scan_suffix }}
           path: dependency-results-${{ matrix.rock.name }}-${{ steps.scan-metadata.outputs.scan_suffix }}.sbom.json
