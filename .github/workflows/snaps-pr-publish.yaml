@@ -26,7 +26,7 @@ jobs:
           - label: ubuntu-26.04-arm # arm64
             platform: arm64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install snapcraft and LXD
         run: |
@@ -50,7 +50,7 @@ jobs:
 
       - name: Upload snapcraft logs
         if: ${{ success() || failure() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: snapcraft-test-logs-${{ matrix.snap.name }}--platform-${{ matrix.runner.platform }}
           path: ~/.local/state/snapcraft/log/*
@@ -68,7 +68,7 @@ jobs:
           echo "path=${path//\//-}" >> "$GITHUB_OUTPUT"
 
       - name: Upload snap package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: packed-snap-${{ matrix.snap.name }}-${{ steps.path-in-artifact.outputs.path }}--platform-${{ matrix.runner.platform }}
           path: |
@@ -86,7 +86,7 @@ jobs:
       fail-fast: false
       matrix:
         snap: ${{ fromJSON(needs.discover-snaps.outputs.snaps) }}
-    uses: canonical/data-platform-workflows/.github/workflows/release_snap_pr.yaml@v49.0.2
+    uses: canonical/data-platform-workflows/.github/workflows/release_snap_pr.yaml@v50.2.1
     with:
       track: "9.0"
       path-to-snap-project-directory: ${{ matrix.snap.path }}
@@ -94,5 +94,4 @@ jobs:
     secrets:
       snap-store-token: ${{ secrets.SNAP_STORE_TOKEN_EDGE }}
     permissions:
-      actions: read # Needed for GitHub API call to get workflow version
       contents: read

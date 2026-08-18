@@ -36,7 +36,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Point rock stage snaps at PR branch
         env:
@@ -61,7 +61,7 @@ jobs:
           echo "path=${path//\//-}" >> "$GITHUB_OUTPUT"
 
       - name: Upload rock for Trivy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: packed-rock-${{ matrix.rock.name }}-${{ steps.path-in-artifact.outputs.path }}--platform-${{ matrix.runner.platform }}
           path: ${{ matrix.rock.path }}/*.rock

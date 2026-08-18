@@ -33,7 +33,7 @@ jobs:
       SNAPS: ${{ needs.discover-snaps.outputs.snaps }}
       SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_TOKEN_EDGE }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install snapcraft
         run: sudo snap install snapcraft --classic
@@ -64,7 +64,7 @@ jobs:
       CURRENT_REVISIONS: ${{ needs.snapshot-current-snap-revisions.outputs.current-revisions }}
       SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_TOKEN_EDGE }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install snapcraft
         run: sudo snap install snapcraft --classic

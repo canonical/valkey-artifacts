@@ -17,12 +17,11 @@ jobs:
       fail-fast: false
       matrix:
         rock: ${{ fromJSON(needs.discover-rocks.outputs.rocks) }}
-    uses: canonical/data-platform-workflows/.github/workflows/build_rock.yaml@v49.0.2
+    uses: canonical/data-platform-workflows/.github/workflows/build_rock.yaml@v50.2.1
     with:
       path-to-rock-directory: ${{ matrix.rock.path }}
       artifact-prefix: packed-rock-${{ matrix.rock.name }}
     permissions:
-      actions: read # Needed for GitHub API call to get workflow version
       contents: read
 
   test:
@@ -42,7 +41,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Test rock
         uses: ./.github/actions/test-rock
@@ -79,11 +78,10 @@ jobs:
       fail-fast: false
       matrix:
         rock: ${{ fromJSON(needs.discover-rocks.outputs.rocks) }}
-    uses: canonical/data-platform-workflows/.github/workflows/release_rock_edge.yaml@v49.0.2
+    uses: canonical/data-platform-workflows/.github/workflows/release_rock_edge.yaml@v50.2.1
     with:
       path-to-rock-directory: ${{ matrix.rock.path }}
       artifact-prefix: packed-rock-${{ matrix.rock.name }}
     permissions:
-      actions: read # Needed for GitHub API call to get workflow version
       packages: write # Needed to publish to GitHub Container Registry
       contents: write # Needed to create git tags
