@@ -67,9 +67,8 @@ jobs:
       contents: read
       security-events: write
 
-  # Sbomber runs against the same packed-rock artifacts uploaded by the build
-  # job. Unlike the PR path this registers results in the SSDLC scan registry,
-  # because these are the rocks that are about to be released.
+  # Same rock files as the Trivy scan. This must pass before we publish, and
+  # here we do send the results to the SSDLC registry.
   sbomber:
     name: Sbomber scan
     needs:

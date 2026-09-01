@@ -82,8 +82,7 @@ jobs:
       contents: read
       security-events: write
 
-  # Same packed rocks, submitted to Canonical's internal scanning services.
-  # SSDLC reporting stays off: a pull request build is never released.
+  # No SSDLC report: we never release a PR build.
   sbomber-rocks:
     name: Sbomber scan
     needs:

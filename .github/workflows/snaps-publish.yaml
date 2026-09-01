@@ -24,9 +24,8 @@ jobs:
     permissions:
       contents: read
 
-  # Sbomber runs against the same packed-snap artifacts uploaded by the build
-  # job, and gates publishing. Unlike the PR path this registers results in the
-  # SSDLC scan registry, because these are the snaps about to be released.
+  # This must pass before we publish, and here we do send the results to the
+  # SSDLC registry.
   sbomber:
     name: Sbomber scan
     needs:
