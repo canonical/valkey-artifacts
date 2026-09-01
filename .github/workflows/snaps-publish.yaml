@@ -24,11 +24,30 @@ jobs:
     permissions:
       contents: read
 
+  # Sbomber runs against the same packed-snap artifacts uploaded by the build
+  # job, and gates publishing. Unlike the PR path this registers results in the
+  # SSDLC scan registry, because these are the snaps about to be released.
+  sbomber:
+    name: Sbomber scan
+    needs:
+      - discover-snaps
+      - build
+    uses: ./.github/workflows/sbomber-scan.yaml
+    with:
+      artifacts: ${{ needs.discover-snaps.outputs.snaps }}
+      artifact-kind: snap
+      release-channel: edge
+      report-ssdlc: true
+    permissions:
+      actions: read
+      contents: read
+
   publish:
     name: Publish Snap | ${{ matrix.snap.name }}
     needs:
       - discover-snaps
       - build
+      - sbomber
     strategy:
       fail-fast: false
       matrix:

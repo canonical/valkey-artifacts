@@ -3,7 +3,8 @@
 
 # Build and test rocks against snaps published from a pull request.
 # Each rock is retargeted to the PR snap channel, tested on amd64 and arm64,
-# uploaded as a packed-rock artifact, and scanned by Trivy before the workflow passes.
+# uploaded as a packed-rock artifact, then scanned by both Trivy and sbomber
+# before the workflow passes.
 
 name: Rock tests on PR
 
@@ -80,3 +81,19 @@ jobs:
       actions: read
       contents: read
       security-events: write
+
+  # Same packed rocks, submitted to Canonical's internal scanning services.
+  # SSDLC reporting stays off: a pull request build is never released.
+  sbomber-rocks:
+    name: Sbomber scan
+    needs:
+      - discover-rocks
+      - test-rocks
+    uses: ./.github/workflows/sbomber-scan.yaml
+    with:
+      artifacts: ${{ needs.discover-rocks.outputs.rocks }}
+      artifact-kind: rock
+      report-ssdlc: false
+    permissions:
+      actions: read
+      contents: read

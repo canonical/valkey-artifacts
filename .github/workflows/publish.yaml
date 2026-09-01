@@ -47,13 +47,14 @@ jobs:
       - id: current-revisions
         run: .github/scripts/snapshot-current-snap-revisions.sh
 
-  # 2. Build and publish all snaps to the channel first.
+  # 2. Build, scan and publish all snaps to the channel first.
   publish-snaps:
     name: Publish snaps
     needs: snapshot-current-snap-revisions
     uses: ./.github/workflows/snaps-publish.yaml
     secrets: inherit
     permissions:
+      actions: read # Needed to download snap artifacts for sbomber
       contents: write # Needed to create git tags
 
   # 3. Wait until every snap that backs a rock has a newer revision live on the
@@ -78,14 +79,15 @@ jobs:
         run: .github/scripts/wait-for-snap-revisions.sh
 
   # 4. Build, test, scan and publish the rocks. Publish only happens if build,
-  #    test and Trivy scan all pass (inside rocks-publish.yaml).
+  #    test, the Trivy scan and the sbomber scan all pass (inside
+  #    rocks-publish.yaml).
   publish-rock:
     name: Build, test and publish rocks
     needs: wait-for-snap-revision
     uses: ./.github/workflows/rocks-publish.yaml
     secrets: inherit
     permissions:
-      actions: read # Needed to download rock artifacts for Trivy
+      actions: read # Needed to download rock artifacts for Trivy and sbomber
       packages: write # Needed to publish to GitHub Container Registry
       contents: write # Needed to create git tags
       security-events: write # Needed for Trivy SARIF upload (rocks-scan)

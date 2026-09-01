@@ -77,6 +77,24 @@ jobs:
           include-hidden-files: true # For `.empty`
           if-no-files-found: error
 
+  # Snaps are not Trivy-scanned, so this is their only vulnerability scan.
+  # It deliberately does not gate publish-snaps: the PR rocks cannot be built
+  # until the PR snaps are live, and the scanning backend queues requests.
+  # SSDLC reporting stays off: a pull request build is never released.
+  sbomber-snaps:
+    name: Sbomber scan
+    needs:
+      - discover-snaps
+      - test-snaps
+    uses: ./.github/workflows/sbomber-scan.yaml
+    with:
+      artifacts: ${{ needs.discover-snaps.outputs.snaps }}
+      artifact-kind: snap
+      report-ssdlc: false
+    permissions:
+      actions: read
+      contents: read
+
   publish-snaps:
     name: Publish snap to PR branch | ${{ matrix.snap.name }}
     needs:

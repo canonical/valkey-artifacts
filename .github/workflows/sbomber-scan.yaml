@@ -1,0 +1,116 @@
+# Copyright 2026 Canonical Ltd.
+# See LICENSE file for licensing details.
+name: Sbomber SBOM and security scan
+
+# Submits artifacts that were just built in this workflow run to Canonical's
+# internal SBOM and security scanning services, via canonical/sbomber, before
+# anything is published.
+#
+# This runs alongside rocks-scan.yaml (Trivy) and consumes the very same
+# packed-rock / packed-snap artifacts, so both scanners see identical bytes.
+# Unlike Trivy it also covers snaps, and its reports are an official Canonical
+# SBOM (JSON) plus a secscan report (HTML) rather than SARIF.
+#
+# Note that sbomber's secscan backend runs Trivy too, so this is not a second
+# opinion on vulnerabilities. The value is the official SBOM and, on release,
+# the SSDLC registry submission.
+#
+# All artifacts of a kind are submitted in one job: the backend processes them
+# in parallel, and private-endpoint runners are a scarce resource.
+
+on:
+  workflow_call:
+    inputs:
+      artifacts:
+        description: JSON list of {name, path} objects to scan.
+        required: true
+        type: string
+      artifact-kind:
+        description: Kind of artifact to scan, "rock" or "snap".
+        required: true
+        type: string
+      artifact-prefix:
+        description: Prefix of the GitHub artifacts holding the packed files.
+        default: ""
+        required: false
+        type: string
+      platforms:
+        description: Space-separated architectures to scan.
+        default: amd64 arm64
+        required: false
+        type: string
+      release-channel:
+        description: SSDLC release channel (risk only) to report under.
+        default: edge
+        required: false
+        type: string
+      report-ssdlc:
+        description: |
+          Submit results to the long-term SSDLC scan registry. Leave false for
+          pull requests: those builds are never released and must not be
+          registered.
+        default: false
+        required: false
+        type: boolean
+
+# Ownership metadata attached to every SBOM request. None of this is secret, so
+# it lives here instead of requiring out-of-band repository setup; a repository
+# variable of the same name still wins, which is useful for testing under a
+# different team without touching the workflow.
+#
+# `department` and `team` are sent as `type: predefined` and are validated
+# against a server-side list, so they cannot be arbitrary strings. Confirm any
+# change against https://sbom-request.canonical.com/docs before merging.
+env:
+  SBOM_DEPARTMENT: ${{ vars.SBOM_DEPARTMENT || 'data_platform' }}
+  SBOM_TEAM: ${{ vars.SBOM_TEAM || 'data_platform' }}
+  SBOM_EMAIL: ${{ vars.SBOM_EMAIL || 'smail.kourta@canonical.com' }}
+
+jobs:
+  sbomber:
+    name: Sbomber scan | ${{ inputs.artifact-kind }}
+    # sbomber talks to Canonical-internal services that are only reachable from
+    # a private-endpoint runner. This job cannot run on public GitHub runners.
+    runs-on: [self-hosted-linux-amd64-noble-private-endpoint-medium]
+    # `poll --wait` blocks until every report is ready.
+    timeout-minutes: 360
+    permissions:
+      actions: read # Needed to download the packed artifacts
+      contents: read
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v7
+
+      - name: Install dependencies
+        run: |
+          command -v yq >/dev/null || sudo snap install yq
+          command -v jq >/dev/null || sudo apt-get install -y jq
+
+      - name: Download built ${{ inputs.artifact-kind }}s
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ inputs.artifact-prefix || format('packed-{0}', inputs.artifact-kind) }}-*--platform-*
+          merge-multiple: true
+          path: sbomber-pkgs
+
+      - name: Generate sbomber manifest
+        # SBOM_DEPARTMENT, SBOM_TEAM and SBOM_EMAIL come from the workflow-level
+        # `env` above. Do not repeat them here: a step-level entry would shadow
+        # it and drop the fallback if the repository variable is unset.
+        env:
+          ARTIFACTS: ${{ inputs.artifacts }}
+          ARTIFACT_KIND: ${{ inputs.artifact-kind }}
+          PKG_DIR: sbomber-pkgs
+          PLATFORMS: ${{ inputs.platforms }}
+          RELEASE_CHANNEL: ${{ inputs.release-channel }}
+          REPORT_SSDLC: ${{ inputs.report-ssdlc }}
+        run: .github/scripts/generate-sbom-manifest.sh
+
+      - name: Run sbomber
+        uses: canonical/sbomber/.github/actions/run@9a2491ce50947009415e286a049d438a5363a264
+        with:
+          manifest: ${{ github.workspace }}/sbom_manifest.yaml
+          artifact-name: sbomber-${{ inputs.artifact-kind }}
+          # Per artifact, not for the whole run. Keep it under the job timeout.
+          poll-timeout: "45"
+          sbomber-ref: 9a2491ce50947009415e286a049d438a5363a264
