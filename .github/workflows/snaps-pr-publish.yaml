@@ -90,6 +90,7 @@ jobs:
       artifacts: ${{ needs.discover-snaps.outputs.snaps }}
       artifact-kind: snap
       report-ssdlc: false
+      request-sbom: false # SBOM only after publishing
     permissions:
       actions: read
       contents: read

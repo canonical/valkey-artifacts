@@ -67,24 +67,6 @@ jobs:
       contents: read
       security-events: write
 
-  # Same rock files as the Trivy scan. This must pass before we publish, and
-  # here we do send the results to the SSDLC registry.
-  sbomber:
-    name: Sbomber scan
-    needs:
-      - discover-rocks
-      - build
-      - test
-    uses: ./.github/workflows/sbomber-scan.yaml
-    with:
-      artifacts: ${{ needs.discover-rocks.outputs.rocks }}
-      artifact-kind: rock
-      release-channel: edge
-      report-ssdlc: true
-    permissions:
-      actions: read
-      contents: read
-
   publish:
     name: Publish rock  | ${{ matrix.rock.name }}
     needs:
@@ -92,7 +74,6 @@ jobs:
       - build
       - test
       - scan
-      - sbomber
     strategy:
       fail-fast: false
       matrix:

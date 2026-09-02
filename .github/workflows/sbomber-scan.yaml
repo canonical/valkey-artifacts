@@ -2,15 +2,15 @@
 # See LICENSE file for licensing details.
 name: Sbomber SBOM and security scan
 
-# Sends the rocks and snaps we just built to Canonical's SBOM and security scan
-# services, using canonical/sbomber. This happens before we publish anything.
+# Scan snaps and rocks using Canonical's services,
+# using canonical/sbomber. The `source` input picks what we send:
 #
-# Trivy (rocks-scan.yaml) also scans the same files. We keep both because
-# sbomber gives us the official SBOM and adds the results to the SSDLC
-# registry. It uses Trivy inside, so it does not find different bugs.
+#   built      The files we just built, before we publish them. Scan only.
+#   published  What is live on the store or GHCR. Scan and generate SBOM then
+#              report to SSDLC
 #
-# We scan all files of one kind in a single job. The service works on them at
-# the same time, and we do not have many private-endpoint runners.
+# Trivy (rocks-scan.yaml) also scans the built rocks to update code-scanning tab in GH
+#
 
 on:
   workflow_call:
@@ -33,9 +33,16 @@ on:
         default: amd64 arm64
         required: false
         type: string
-      release-channel:
-        description: Channel name to report to SSDLC, such as edge.
-        default: edge
+      source:
+        description: What to send, "built" or "published".
+        default: built
+        required: false
+        type: string
+      channel:
+        description: |
+          Store channel. Used to find published artifacts, and the part after
+          the slash is the channel name SSDLC wants.
+        default: 9.0/edge
         required: false
         type: string
       report-ssdlc:
@@ -45,13 +52,13 @@ on:
         default: false
         required: false
         type: boolean
+      request-sbom:
+        description: |
+          Generate SBOM. Requires revision of the artifact.
+        default: false
+        required: false
+        type: boolean
 
-# These are not secrets, so we keep them here. You do not need to set anything
-# up in the repo. If a repo variable with the same name exists, it wins.
-#
-# The server only accepts `department` and `team` from a fixed list.
-# `data_platform` is not on that list, so the server said no to every request
-# (see run 33515106392). The error message tells you the values you can use.
 env:
   SBOM_DEPARTMENT: ${{ vars.SBOM_DEPARTMENT || 'charm_engineering' }}
   SBOM_TEAM: ${{ vars.SBOM_TEAM || 'no_sql' }}
@@ -59,12 +66,11 @@ env:
 
 jobs:
   sbomber:
-    name: Sbomber scan | ${{ inputs.artifact-kind }}
-    # These services are inside Canonical. Public runners cannot reach them.
+    name: Sbomber ${{ inputs.source }} | ${{ inputs.artifact-kind }}
     runs-on: [self-hosted-linux-amd64-noble-private-endpoint-medium]
     timeout-minutes: 360 # `poll --wait` waits for every report
     permissions:
-      actions: read # To download the built files
+      actions: read
       contents: read
     steps:
       - name: Checkout repo
@@ -76,6 +82,7 @@ jobs:
           command -v jq >/dev/null || sudo apt-get install -y jq
 
       - name: Download built ${{ inputs.artifact-kind }}s
+        if: inputs.source == 'built'
         uses: actions/download-artifact@v8
         with:
           pattern: ${{ inputs.artifact-prefix || format('packed-{0}', inputs.artifact-kind) }}-*--platform-*
@@ -83,22 +90,22 @@ jobs:
           path: sbomber-pkgs
 
       - name: Generate sbomber manifest
-        # The SBOM_* values come from the `env` block above. Do not add them
-        # here again, or the repo variable fallback stops working.
         env:
           ARTIFACTS: ${{ inputs.artifacts }}
           ARTIFACT_KIND: ${{ inputs.artifact-kind }}
+          SOURCE: ${{ inputs.source }}
           PKG_DIR: sbomber-pkgs
           PLATFORMS: ${{ inputs.platforms }}
-          RELEASE_CHANNEL: ${{ inputs.release-channel }}
+          CHANNEL: ${{ inputs.channel }}
           REPORT_SSDLC: ${{ inputs.report-ssdlc }}
+          REQUEST_SBOM: ${{ inputs.request-sbom }}
         run: .github/scripts/generate-sbom-manifest.sh
 
       - name: Run sbomber
         uses: canonical/sbomber/.github/actions/run@9a2491ce50947009415e286a049d438a5363a264
         with:
           manifest: ${{ github.workspace }}/sbom_manifest.yaml
-          artifact-name: sbomber-${{ inputs.artifact-kind }}
+          artifact-name: sbomber-${{ inputs.source }}-${{ inputs.artifact-kind }}
           poll-timeout: "45" # For each file; keep it below the job timeout
           sbomber-ref: 9a2491ce50947009415e286a049d438a5363a264
 

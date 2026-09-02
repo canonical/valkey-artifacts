@@ -24,29 +24,11 @@ jobs:
     permissions:
       contents: read
 
-  # This must pass before we publish, and here we do send the results to the
-  # SSDLC registry.
-  sbomber:
-    name: Sbomber scan
-    needs:
-      - discover-snaps
-      - build
-    uses: ./.github/workflows/sbomber-scan.yaml
-    with:
-      artifacts: ${{ needs.discover-snaps.outputs.snaps }}
-      artifact-kind: snap
-      release-channel: edge
-      report-ssdlc: true
-    permissions:
-      actions: read
-      contents: read
-
   publish:
     name: Publish Snap | ${{ matrix.snap.name }}
     needs:
       - discover-snaps
       - build
-      - sbomber
     strategy:
       fail-fast: false
       matrix:
