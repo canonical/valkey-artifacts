@@ -37,7 +37,8 @@ parts:
       - valkey/9.0/edge
     stage-packages:
       - libatomic1
-      - openssl
+      - libssl3t64
+      - tzdata
     override-stage: |
       craftctl default
       # stay under 80 chars
