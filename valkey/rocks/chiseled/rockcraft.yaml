@@ -17,14 +17,10 @@ platforms:
   amd64:
   arm64:
 
-run-user: _daemon_
+entrypoint-command: /usr/local/bin/docker-entrypoint.sh [ valkey-server ]
 
-services:
-  valkey:
-    override: replace
-    startup: enabled
-    summary: Start Valkey
-    command: "valkey-server /var/lib/valkey/valkey.conf"
+environment:
+  VALKEY_VERSION: "9.0.4"
 
 parts:
   valkey:
@@ -49,21 +45,34 @@ parts:
         exit 1
       fi
       echo "Version check passed: $actual"
+    override-prime: |
+      craftctl default
+      rm -rf "${CRAFT_PRIME}/etc/valkey"
+      rm -rf "${CRAFT_PRIME}/var/lib/valkey"
+      rm -rf "${CRAFT_PRIME}/var/log/valkey"
+      rm -rf "${CRAFT_PRIME}/run/sentinel"
   valkey-user:
     plugin: nil
     after:
       - valkey
+    overlay-script: |
+      set -eux
+      if ! grep -q '^valkey:' "${CRAFT_OVERLAY}/etc/passwd"; then
+        groupadd -P "${CRAFT_OVERLAY}" -r -g 999 valkey
+        useradd -P "${CRAFT_OVERLAY}" -r -g valkey -u 999 valkey
+      fi
+      mkdir -p "${CRAFT_OVERLAY}/data" \
+        "${CRAFT_OVERLAY}/run/valkey"
+      chmod 1777 "${CRAFT_OVERLAY}/data" \
+        "${CRAFT_OVERLAY}/run/valkey"
+      chown 999:999 "${CRAFT_OVERLAY}/data" \
+        "${CRAFT_OVERLAY}/run/valkey"
+  docker-entrypoint:
+    plugin: dump
+    source: local
+    organize:
+      docker-entrypoint.sh: usr/local/bin/docker-entrypoint.sh
     override-prime: |
       craftctl default
-      mkdir -p $CRAFT_PRIME/var/lib/valkey
-      mkdir -p $CRAFT_PRIME/var/log/valkey
-      mkdir -p $CRAFT_PRIME/run/valkey
-      cp $CRAFT_PRIME/etc/valkey/valkey.conf $CRAFT_PRIME/var/lib/valkey/
-      CONF="$CRAFT_PRIME/var/lib/valkey/valkey.conf"
-      sed -i -E '/^[[:space:]]*dir[[:space:]]/d' "$CONF"
-      echo 'dir /var/lib/valkey' >> "$CONF"
-      sed -i -E '/^[[:space:]]*daemonize[[:space:]]/d' "$CONF"
-      echo 'daemonize no' >> "$CONF"
-      chown -R 584792:584792 $CRAFT_PRIME/var/lib/valkey
-      chown -R 584792:584792 $CRAFT_PRIME/var/log/valkey
-      chown -R 584792:584792 $CRAFT_PRIME/run/valkey
+      chmod 0755 \
+        "${CRAFT_PRIME}/usr/local/bin/docker-entrypoint.sh"
