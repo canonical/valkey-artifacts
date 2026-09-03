@@ -7,11 +7,9 @@ base: ubuntu@26.04
 version: "9.0.4"
 summary: Valkey Chiseled ROCK OCI
 description: |
-  This is an OCI image that bundles Valkey together with the metrics exporter
-  in order to be used in Operators, providing automated operations
-  management from day 0 to day 2 on Valkey, on top of a Virtual Machine cluster
-  and K8s cluster. It is an open source, end-to-end, production ready data
-  platform on top of cloud native technologies.
+  Valkey is an open source (BSD) high-performance key-value datastore.
+  This chiseled rock provides an upstream Docker-compatible container
+  image for Valkey 9.0 on Ubuntu 26.04.
 license: Apache-2.0
 platforms:
   amd64:
