@@ -26,3 +26,11 @@ execute: |
     echo "Expected exit code 42, got: $EXIT_CODE" >&2
     exit 1
   }
+
+  echo "Checking chiseled tool binaries..."
+  docker run --rm "${IMAGE}" valkey-benchmark --help \
+    | grep -q "Usage: valkey-benchmark"
+  docker run --rm "${IMAGE}" valkey-check-aof --version \
+    | grep -q "valkey-check-aof"
+  docker run --rm "${IMAGE}" valkey-check-rdb 2>&1 \
+    | grep -q "Usage: valkey-check-rdb"

@@ -1,17 +1,48 @@
 summary: Valkey rock sentinel test
 
 execute: |
-  echo "Running sentinel test..."
-  docker exec "${SPREAD_TASK//\//_}" pebble start sentinel
+  set -eu
+
+  CONTAINER="${SPREAD_TASK//\//_}"
+  IMAGE="$(docker inspect "${CONTAINER}" --format '{{.Config.Image}}')"
+
+  echo "Verifying valkey-sentinel binary exists..."
+  docker exec "${CONTAINER}" test -x /usr/bin/valkey-sentinel
+
+  echo "Starting Sentinel monitoring the local Valkey server..."
+  SENTINEL_CONTAINER="${CONTAINER}_sentinel"
+  docker rm -f "${SENTINEL_CONTAINER}" 2>/dev/null || true
+
+  docker run -d --name "${SENTINEL_CONTAINER}" \
+    --network "container:${CONTAINER}" \
+    "${IMAGE}" sh -c '
+      echo "port 26379" > /data/sentinel.conf
+      echo "sentinel monitor mymaster 127.0.0.1 6379 1" \
+        >> /data/sentinel.conf
+      echo "sentinel down-after-milliseconds mymaster 5000" \
+        >> /data/sentinel.conf
+      echo "sentinel failover-timeout mymaster 60000" \
+        >> /data/sentinel.conf
+      exec valkey-sentinel /data/sentinel.conf
+    '
+
+  echo "Waiting for Sentinel to become ready..."
   retry=0
-  until docker exec "${SPREAD_TASK//\//_}" \
-      valkey-cli -p 26379 sentinel masters 2>/dev/null; do
+  until docker exec "${CONTAINER}" \
+      valkey-cli -p 26379 sentinel masters 2>/dev/null \
+      | grep -q "mymaster"; do
     retry=$((retry + 1))
     if [ $retry -ge 30 ]; then
       echo "Valkey sentinel did not become ready in time"
-      docker logs "${SPREAD_TASK//\//_}" || true
+      docker logs "${SENTINEL_CONTAINER}" || true
+      docker rm -f "${SENTINEL_CONTAINER}" 2>/dev/null || true
       exit 1
     fi
     sleep 1
   done
-  docker exec "${SPREAD_TASK//\//_}" valkey-cli -p 26379 sentinel masters
+
+  echo "Querying Sentinel masters..."
+  docker exec "${CONTAINER}" valkey-cli -p 26379 sentinel masters \
+    | grep -q "mymaster"
+
+  docker rm -f "${SENTINEL_CONTAINER}" >/dev/null
