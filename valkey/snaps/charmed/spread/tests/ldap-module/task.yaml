@@ -1,0 +1,30 @@
+summary: Valkey snap LDAP module test
+
+execute: |
+  echo "Running LDAP module test..."
+  module="/snap/valkey-charmed/current/usr/lib/valkey/modules"
+  module="${module}/libvalkey_ldap.so"
+  test -f "$module"
+
+  # LDAP auth is opt-in, so enable it the way an operator would: add a
+  # loadmodule line to the snap-managed config and restart the server.
+  conf="/var/snap/valkey-charmed/current/etc/valkey/valkey.conf"
+  echo "loadmodule $module" >> "$conf"
+  snap restart valkey-charmed.server
+
+  retry=0
+  until valkey-charmed.cli ping 2>/dev/null | grep -q PONG; do
+    retry=$((retry + 1))
+    if [ $retry -ge 30 ]; then
+      echo "Valkey server did not become ready in time"
+      snap logs valkey-charmed.server || true
+      exit 1
+    fi
+    sleep 1
+  done
+
+  # the module registers itself under the name "ldap" and exposes its
+  # settings as "ldap.*" configuration parameters
+  valkey-charmed.cli module list
+  valkey-charmed.cli module list | grep -q ldap
+  valkey-charmed.cli config get 'ldap.servers' | grep -q ldap.servers
