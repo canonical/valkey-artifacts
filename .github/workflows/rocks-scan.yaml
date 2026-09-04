@@ -89,6 +89,7 @@ jobs:
         if: always()
         with:
           sarif_file: trivy-results-${{ matrix.rock.name }}-${{ steps.scan-metadata.outputs.scan_suffix }}.sarif
+          category: rock-${{ matrix.rock.name }}-${{ matrix.platform }}
 
       - name: Generate SBOM
         uses: aquasecurity/trivy-action@v0.36.0
