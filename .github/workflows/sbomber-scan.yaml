@@ -1,0 +1,115 @@
+# Copyright 2026 Canonical Ltd.
+# See LICENSE file for licensing details.
+name: Sbomber SBOM and security scan
+
+# Scan snaps and rocks using Canonical's services,
+# using canonical/sbomber. The `source` input picks what we send:
+#
+#   built      The files we just built, before we publish them. Scan only.
+#   published  What is live on the store or GHCR. Scan and generate SBOM then
+#              report to SSDLC
+#
+# Trivy (rocks-scan.yaml) also scans the built rocks to update code-scanning tab in GH
+#
+
+on:
+  workflow_call:
+    inputs:
+      artifacts:
+        description: List of {name, path} to scan, as JSON.
+        required: true
+        type: string
+      artifact-kind:
+        description: What to scan, "rock" or "snap".
+        required: true
+        type: string
+      artifact-prefix:
+        description: Start of the name of the artifacts that hold the built files.
+        default: ""
+        required: false
+        type: string
+      platforms:
+        description: Which CPU types to scan, split by a space.
+        default: amd64 arm64
+        required: false
+        type: string
+      source:
+        description: What to send, "built" or "published".
+        default: built
+        required: false
+        type: string
+      channel:
+        description: |
+          Store channel. Used to find published artifacts, and the part after
+          the slash is the channel name SSDLC wants.
+        default: 9/edge
+        required: false
+        type: string
+      report-ssdlc:
+        description: |
+          Add the results to the SSDLC registry. Keep this false for pull
+          requests, because we never release a PR build.
+        default: false
+        required: false
+        type: boolean
+      request-sbom:
+        description: |
+          Generate SBOM. Requires revision of the artifact.
+        default: false
+        required: false
+        type: boolean
+
+env:
+  SBOM_DEPARTMENT: ${{ vars.SBOM_DEPARTMENT || 'charm_engineering' }}
+  SBOM_TEAM: ${{ vars.SBOM_TEAM || 'no_sql' }}
+  SBOM_EMAIL: ${{ vars.SBOM_EMAIL || 'smail.kourta@canonical.com' }}
+
+jobs:
+  sbomber:
+    name: Sbomber ${{ inputs.source }} | ${{ inputs.artifact-kind }}
+    runs-on: [self-hosted-linux-amd64-noble-private-endpoint-medium]
+    timeout-minutes: 360 # `poll --wait` waits for every report
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v7
+
+      - name: Install dependencies
+        run: |
+          command -v yq >/dev/null || sudo snap install yq
+          command -v jq >/dev/null || sudo apt-get install -y jq
+
+      - name: Download built ${{ inputs.artifact-kind }}s
+        if: inputs.source == 'built'
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ inputs.artifact-prefix || format('packed-{0}', inputs.artifact-kind) }}-*--platform-*
+          merge-multiple: true
+          path: sbomber-pkgs
+
+      - name: Generate sbomber manifest
+        env:
+          ARTIFACTS: ${{ inputs.artifacts }}
+          ARTIFACT_KIND: ${{ inputs.artifact-kind }}
+          SOURCE: ${{ inputs.source }}
+          PKG_DIR: sbomber-pkgs
+          PLATFORMS: ${{ inputs.platforms }}
+          CHANNEL: ${{ inputs.channel }}
+          REPORT_SSDLC: ${{ inputs.report-ssdlc }}
+          REQUEST_SBOM: ${{ inputs.request-sbom }}
+        run: .github/scripts/generate-sbom-manifest.sh
+
+      - name: Run sbomber
+        uses: canonical/sbomber/.github/actions/run@9a2491ce50947009415e286a049d438a5363a264
+        with:
+          manifest: ${{ github.workspace }}/sbom_manifest.yaml
+          artifact-name: sbomber-${{ inputs.source }}-${{ inputs.artifact-kind }}
+          poll-timeout: "45" # For each file; keep it below the job timeout
+          sbomber-ref: 9a2491ce50947009415e286a049d438a5363a264
+
+      # sbomber passes even when the server rejected every file, so we check.
+      - name: Verify every SBOM and scan succeeded
+        if: always()
+        run: .github/scripts/check-sbomber-state.sh

@@ -78,7 +78,7 @@ jobs:
         run: .github/scripts/wait-for-snap-revisions.sh
 
   # 4. Build, test, scan and publish the rocks. Publish only happens if build,
-  #    test and Trivy scan all pass (inside rocks-publish.yaml).
+  #    test and the Trivy scan all pass (inside rocks-publish.yaml).
   publish-rock:
     name: Build, test and publish rocks
     needs: wait-for-snap-revision
@@ -89,3 +89,39 @@ jobs:
       packages: write # Needed to publish to GitHub Container Registry
       contents: write # Needed to create git tags
       security-events: write # Needed for Trivy SARIF upload (rocks-scan)
+
+  # 5. Run SSDLC SBOM and security scan on the published snaps.
+  published-snaps:
+    name: SBOM, scan and SSDLC | snaps
+    needs:
+      - discover-snaps
+      - wait-for-snap-revision
+    uses: ./.github/workflows/sbomber-scan.yaml
+    with:
+      artifacts: ${{ needs.discover-snaps.outputs.snaps }}
+      artifact-kind: snap
+      source: published
+      channel: 9/edge
+      request-sbom: true
+      report-ssdlc: true
+    permissions:
+      actions: read
+      contents: read
+
+  # 6. Run SSDLC SBOM and security scan on the published rocks.
+  published-rocks:
+    name: SBOM, scan and SSDLC | rocks
+    needs:
+      - discover-rocks
+      - publish-rock
+    uses: ./.github/workflows/sbomber-scan.yaml
+    with:
+      artifacts: ${{ needs.discover-rocks.outputs.rocks }}
+      artifact-kind: rock
+      source: published
+      channel: 9/edge
+      request-sbom: true
+      report-ssdlc: true
+    permissions:
+      actions: read
+      contents: read
