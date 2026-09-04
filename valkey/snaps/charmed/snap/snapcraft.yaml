@@ -15,6 +15,13 @@ platforms:
 system-usernames:
   snap_daemon: shared
 
+lint:
+  ignore:
+    # false positive: the linter's "libva*so*" pattern (meant for libva,
+    # the Video Acceleration API) matches libvalkey_ldap.so by name
+    - gpu:
+        - usr/lib/valkey/modules/libvalkey_ldap.so
+
 hooks:
   install:
     plugs:
@@ -111,6 +118,21 @@ parts:
         exit 1
       fi
       echo "Version check passed: $actual"
+
+  ldap-module:
+    plugin: rust
+    source: https://git.launchpad.net/valkey-ldap
+    source-type: git
+    source-tag: lp-1.1.0
+    build-packages:
+      - libclang-dev
+      - libssl-dev
+    override-build: |
+      cargo build --release --locked
+      # same path as packaging metadata in the valkey-ldap repo
+      install -Dm755 \
+        "${CRAFT_PART_BUILD}/target/release/libvalkey_ldap.so" \
+        "${CRAFT_PART_INSTALL}/usr/lib/valkey/modules/libvalkey_ldap.so"
 
   wrapper:
     plugin: dump
