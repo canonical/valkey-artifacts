@@ -105,6 +105,7 @@ jobs:
       request-sbom: true
       report-ssdlc: true
     permissions:
+      actions: read
       contents: read
 
   # 6. Run SSDLC SBOM and security scan on the published rocks.
@@ -122,4 +123,5 @@ jobs:
       request-sbom: true
       report-ssdlc: true
     permissions:
+      actions: read
       contents: read
