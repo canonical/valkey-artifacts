@@ -1,0 +1,24 @@
+summary: Flags and extra flags tests
+
+execute: |
+  set -eu
+
+  CONTAINER="${SPREAD_TASK//\//_}"
+  IMAGE="$(docker inspect "${CONTAINER}" --format '{{.Config.Image}}')"
+
+  echo "Checking port flag override..."
+  docker run -d --name test_flags_port -p 16385:6385 "${IMAGE}" --port 6385
+  for i in $(seq 1 30); do
+    if docker exec test_flags_port valkey-cli -p 6385 ping 2>/dev/null \
+      | grep -q PONG; then
+      break
+    fi
+    sleep 1
+  done
+  docker exec test_flags_port valkey-cli -p 6385 ping | grep -q PONG
+  docker rm -f test_flags_port
+
+  echo "Checking VALKEY_EXTRA_FLAGS..."
+  EXTRA_FLAGS_OUT="$(docker run --rm \
+    -e VALKEY_EXTRA_FLAGS="--loglevel warning" "${IMAGE}" --version)"
+  echo "$EXTRA_FLAGS_OUT" | grep -q "Valkey server v=9.0.4"

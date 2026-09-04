@@ -6,29 +6,18 @@ base: ubuntu@26.04
 version: "9.0.4"
 summary: Valkey ROCK OCI
 description: |
-  This is an OCI image that bundles Valkey together with the metrics exporter
-  in order to be used in Operators, providing automated operations
-  management from day 0 to day 2 on Valkey, on top of a Virtual Machine cluster
-  and K8s cluster. It is an open source, end-to-end, production ready data
-  platform on top of cloud native technologies.
+  Valkey is an open source (BSD) high-performance key-value datastore.
+  This rock provides an upstream Docker-compatible container image for
+  Valkey 9.0 on Ubuntu 26.04.
 license: Apache-2.0
 platforms:
   amd64:
   arm64:
 
-run-user: _daemon_
+entrypoint-command: /usr/local/bin/docker-entrypoint.sh [ valkey-server ]
 
-services:
-  valkey:
-    override: replace
-    startup: enabled
-    summary: Start Valkey
-    command: "valkey-server /var/lib/valkey/valkey.conf"
-  sentinel:
-    override: replace
-    startup: disabled
-    summary: Start Valkey Sentinel
-    command: "valkey-sentinel /var/lib/valkey/sentinel.conf"
+environment:
+  VALKEY_VERSION: "9.0.4"
 
 parts:
   valkey:
@@ -37,7 +26,8 @@ parts:
       - valkey/9.0/edge
     stage-packages:
       - libatomic1
-      - openssl
+      - libssl3t64
+      - tzdata
     override-stage: |
       craftctl default
       # stay under 80 chars
@@ -52,28 +42,34 @@ parts:
         exit 1
       fi
       echo "Version check passed: $actual"
+    override-prime: |
+      craftctl default
+      rm -rf "${CRAFT_PRIME}/etc/valkey"
+      rm -rf "${CRAFT_PRIME}/var/lib/valkey"
+      rm -rf "${CRAFT_PRIME}/var/log/valkey"
+      rm -rf "${CRAFT_PRIME}/run/sentinel"
   valkey-user:
     plugin: nil
     after:
       - valkey
+    overlay-script: |
+      set -eux
+      if ! grep -q '^valkey:' "${CRAFT_OVERLAY}/etc/passwd"; then
+        groupadd -P "${CRAFT_OVERLAY}" -r -g 999 valkey
+        useradd -P "${CRAFT_OVERLAY}" -r -g valkey -u 999 valkey
+      fi
+      mkdir -p "${CRAFT_OVERLAY}/data" \
+        "${CRAFT_OVERLAY}/run/valkey"
+      chmod 1777 "${CRAFT_OVERLAY}/data" \
+        "${CRAFT_OVERLAY}/run/valkey"
+      chown 999:999 "${CRAFT_OVERLAY}/data" \
+        "${CRAFT_OVERLAY}/run/valkey"
+  docker-entrypoint:
+    plugin: dump
+    source: local
+    organize:
+      docker-entrypoint.sh: usr/local/bin/docker-entrypoint.sh
     override-prime: |
-      mkdir -p $CRAFT_PRIME/var/lib/valkey
-      mkdir -p $CRAFT_PRIME/var/log/valkey
-      mkdir -p $CRAFT_PRIME/run/valkey
-      mkdir -p $CRAFT_PRIME/run/sentinel
-      cp $CRAFT_PRIME/etc/valkey/valkey.conf $CRAFT_PRIME/var/lib/valkey/
-      cp $CRAFT_PRIME/etc/valkey/sentinel.conf $CRAFT_PRIME/var/lib/valkey/
-      CONF="$CRAFT_PRIME/var/lib/valkey/valkey.conf"
-      sed -i -E '/^[[:space:]]*dir[[:space:]]/d' "$CONF"
-      echo 'dir /var/lib/valkey' >> "$CONF"
-      sed -i -E '/^[[:space:]]*daemonize[[:space:]]/d' "$CONF"
-      echo 'daemonize no' >> "$CONF"
-      SCONF="$CRAFT_PRIME/var/lib/valkey/sentinel.conf"
-      sed -i -E '/^[[:space:]]*dir[[:space:]]/d' "$SCONF"
-      echo 'dir /var/lib/valkey' >> "$SCONF"
-      sed -i -E '/^[[:space:]]*daemonize[[:space:]]/d' "$SCONF"
-      echo 'daemonize no' >> "$SCONF"
-      chown -R 584792:584792 $CRAFT_PRIME/var/lib/valkey
-      chown -R 584792:584792 $CRAFT_PRIME/var/log/valkey
-      chown -R 584792:584792 $CRAFT_PRIME/run/valkey
-      chown -R 584792:584792 $CRAFT_PRIME/run/sentinel
+      craftctl default
+      chmod 0755 \
+        "${CRAFT_PRIME}/usr/local/bin/docker-entrypoint.sh"

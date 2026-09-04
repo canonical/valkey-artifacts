@@ -1,0 +1,36 @@
+summary: CLI and command override tests
+
+execute: |
+  set -eu
+
+  CONTAINER="${SPREAD_TASK//\//_}"
+  IMAGE="$(docker inspect "${CONTAINER}" --format '{{.Config.Image}}')"
+
+  echo "Checking --version..."
+  docker run --rm "${IMAGE}" --version \
+    | grep -q "Valkey server v=9.0.4"
+  docker run --rm "${IMAGE}" valkey-server --version \
+    | grep -q "Valkey server v=9.0.4"
+
+  echo "Checking --help..."
+  docker run --rm "${IMAGE}" --help | grep -q "Usage:"
+
+  echo "Checking arbitrary command execution..."
+  docker run --rm "${IMAGE}" sh -c 'echo custom_cmd' \
+    | grep -q "custom_cmd"
+
+  echo "Checking exit code preservation..."
+  EXIT_CODE=0
+  docker run --rm "${IMAGE}" sh -c 'exit 42' || EXIT_CODE=$?
+  [ "$EXIT_CODE" -eq 42 ] || {
+    echo "Expected exit code 42, got: $EXIT_CODE" >&2
+    exit 1
+  }
+
+  echo "Checking chiseled tool binaries..."
+  docker run --rm "${IMAGE}" valkey-benchmark --help \
+    | grep -q "Usage: valkey-benchmark"
+  docker run --rm "${IMAGE}" valkey-check-aof --version \
+    | grep -q "valkey-check-aof"
+  docker run --rm "${IMAGE}" valkey-check-rdb 2>&1 \
+    | grep -q "Usage: valkey-check-rdb"

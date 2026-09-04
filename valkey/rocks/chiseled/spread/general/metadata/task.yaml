@@ -1,0 +1,52 @@
+summary: OCI image metadata and filesystem checks
+
+execute: |
+  set -eu
+
+  CONTAINER="${SPREAD_TASK//\//_}"
+  IMAGE="$(docker inspect "${CONTAINER}" --format '{{.Config.Image}}')"
+
+  echo "Checking OCI entrypoint..."
+  ENTRYPOINT="$(docker inspect "${IMAGE}" \
+    --format '{{json .Config.Entrypoint}}')"
+  [ "$ENTRYPOINT" = '["/usr/local/bin/docker-entrypoint.sh"]' ] || {
+    echo "Unexpected entrypoint: $ENTRYPOINT" >&2
+    exit 1
+  }
+
+  echo "Checking OCI CMD..."
+  CMD="$(docker inspect "${IMAGE}" --format '{{json .Config.Cmd}}')"
+  [ "$CMD" = '["valkey-server"]' ] || {
+    echo "Unexpected CMD: $CMD" >&2
+    exit 1
+  }
+
+  echo "Checking default OCI user..."
+  USER="$(docker inspect "${IMAGE}" --format '{{.Config.User}}')"
+  [ -z "$USER" ] || {
+    echo "Expected default user to be empty (root), got: $USER" >&2
+    exit 1
+  }
+
+  echo "Checking environment..."
+  docker inspect "${IMAGE}" --format '{{json .Config.Env}}' \
+    | grep -q 'VALKEY_VERSION=9.0.4' || {
+    echo "VALKEY_VERSION not found in environment" >&2
+    exit 1
+  }
+
+  echo "Checking timezone data..."
+  docker exec "${CONTAINER}" test -f /usr/share/zoneinfo/Etc/UTC || {
+    echo "/usr/share/zoneinfo/Etc/UTC not found" >&2
+    exit 1
+  }
+
+  echo "Checking that default package configs were stripped..."
+  docker exec "${CONTAINER}" test ! -d /etc/valkey || {
+    echo "/etc/valkey should not exist in the rock" >&2
+    exit 1
+  }
+  docker exec "${CONTAINER}" test ! -d /var/lib/valkey || {
+    echo "/var/lib/valkey should not exist in the rock" >&2
+    exit 1
+  }

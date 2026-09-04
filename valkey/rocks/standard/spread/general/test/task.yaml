@@ -1,4 +1,0 @@
-summary: test the 'valkey' project
-
-execute: |
-  docker exec -t "${SPREAD_TASK//\//_}" valkey-cli info

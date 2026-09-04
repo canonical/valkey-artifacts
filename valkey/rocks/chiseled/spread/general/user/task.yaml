@@ -1,0 +1,32 @@
+summary: User handling and permissions tests
+
+execute: |
+  set -eu
+
+  CONTAINER="${SPREAD_TASK//\//_}"
+  IMAGE="$(docker inspect "${CONTAINER}" --format '{{.Config.Image}}')"
+
+  echo "Checking default command override runs as root..."
+  DEFAULT_UID="$(docker run --rm "${IMAGE}" id -u)"
+  [ "$DEFAULT_UID" = "0" ] || {
+    echo "Expected default override to run as root, got: $DEFAULT_UID" >&2
+    exit 1
+  }
+
+  echo "Checking explicit --user valkey..."
+  USER_UID="$(docker run --rm --user valkey "${IMAGE}" id -u)"
+  [ "$USER_UID" = "999" ] || {
+    echo "Expected --user valkey to run as 999, got: $USER_UID" >&2
+    exit 1
+  }
+
+  echo "Checking unwritable directory warning..."
+  docker volume create test_ro_data
+  WARN_OUTPUT="$(docker run --rm --user 1000 -v test_ro_data:/data:ro \
+    "${IMAGE}" --version 2>&1 || true)"
+  echo "$WARN_OUTPUT" \
+    | grep -q "warning: directory '/data' is not writable" || {
+    echo "Expected unwritable directory warning, got: $WARN_OUTPUT" >&2
+    exit 1
+  }
+  docker volume rm test_ro_data 2>/dev/null || true
