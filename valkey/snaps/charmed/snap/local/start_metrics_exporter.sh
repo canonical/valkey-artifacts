@@ -7,4 +7,4 @@ exec "${SNAP}"/usr/bin/setpriv \
     --reuid snap_daemon \
     --regid snap_daemon \
     -- \
-    "${SNAP}"/usr/bin/prometheus-redis-exporter
+    "${SNAP}"/usr/bin/prometheus-redis-exporter "$@"

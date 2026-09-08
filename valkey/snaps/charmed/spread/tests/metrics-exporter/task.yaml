@@ -1,7 +1,7 @@
 summary: Valkey snap metrics-exporter test
 
 execute: |
-  echo "Running metrics-exporter test..."
+  echo "Running default metrics-exporter test..."
   snap start valkey-charmed.metrics-exporter
   retry=0
   until curl -sf http://localhost:9121/metrics 2>/dev/null \
@@ -15,3 +15,47 @@ execute: |
     sleep 1
   done
   curl -sf http://localhost:9121/metrics
+  snap stop valkey-charmed.metrics-exporter
+
+  echo "Running metrics-exporter CLI arguments test..."
+  # Require authentication on the Valkey server
+  valkey-charmed.cli config set requirepass secret
+
+  # Create password JSON file for metrics-exporter
+  pwd_file="/var/snap/valkey-charmed/current/etc/valkey/metrics-password.json"
+  cat <<'EOF' > "$pwd_file"
+  {
+    "redis://localhost:6379": "secret"
+  }
+  EOF
+  chmod 644 "$pwd_file"
+
+  # Verify metrics-exporter authenticates via -redis.password-file
+  snap run valkey-charmed.metrics-exporter \
+      -redis.password-file="$pwd_file" &
+  exporter_pid=$!
+
+  retry=0
+  until curl -sf http://localhost:9121/metrics 2>/dev/null \
+      | grep -q '^redis_up 1'; do
+    retry=$((retry + 1))
+    if [ $retry -ge 30 ]; then
+      echo "Valkey metrics-exporter with password-file failed to start"
+      kill "$exporter_pid" 2>/dev/null || true
+      pkill -f prometheus-redis-exporter 2>/dev/null || true
+      exit 1
+    fi
+    sleep 1
+  done
+  curl -sf http://localhost:9121/metrics | grep -q '^redis_up 1'
+
+  kill "$exporter_pid" 2>/dev/null || true
+  pkill -f prometheus-redis-exporter 2>/dev/null || true
+  wait "$exporter_pid" 2>/dev/null || true
+  rm -f "$pwd_file"
+  valkey-charmed.cli -a secret config set requirepass "" 2>/dev/null || true
+
+restore: |
+  rm -f /var/snap/valkey-charmed/current/etc/valkey/metrics-password.json
+  pkill -f prometheus-redis-exporter 2>/dev/null || true
+  valkey-charmed.cli -a secret config set requirepass "" 2>/dev/null || true
