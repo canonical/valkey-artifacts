@@ -45,10 +45,10 @@ environment:
 parts:
   valkey:
     plugin: nil
-    stage-snaps:
-      - valkey/9.0/edge
     stage-packages:
-      - libatomic1
+      - valkey-server
+      - valkey-tools
+      - valkey-sentinel
       - libssl3t64
       - tzdata
     override-stage: |
@@ -68,9 +68,6 @@ parts:
     override-prime: |
       craftctl default
       rm -rf "${CRAFT_PRIME}/etc/valkey"
-      rm -rf "${CRAFT_PRIME}/var/lib/valkey"
-      rm -rf "${CRAFT_PRIME}/var/log/valkey"
-      rm -rf "${CRAFT_PRIME}/run/sentinel"
   user:
     plugin: nil
     overlay-script: |
