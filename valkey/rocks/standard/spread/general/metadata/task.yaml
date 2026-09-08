@@ -9,7 +9,7 @@ execute: |
   echo "Checking OCI entrypoint..."
   ENTRYPOINT="$(docker inspect "${IMAGE}" \
     --format '{{json .Config.Entrypoint}}')"
-  [ "$ENTRYPOINT" = '["/usr/local/bin/docker-entrypoint.sh"]' ] || {
+  [ "$ENTRYPOINT" = '["/usr/bin/pebble","enter","--args","valkey"]' ] || {
     echo "Unexpected entrypoint: $ENTRYPOINT" >&2
     exit 1
   }
@@ -32,6 +32,11 @@ execute: |
   docker inspect "${IMAGE}" --format '{{json .Config.Env}}' \
     | grep -q 'VALKEY_VERSION=9.0.4' || {
     echo "VALKEY_VERSION not found in environment" >&2
+    exit 1
+  }
+  docker inspect "${IMAGE}" --format '{{json .Config.Env}}' \
+    | grep -q 'PEBBLE_VERBOSE=1' || {
+    echo "PEBBLE_VERBOSE not found in environment" >&2
     exit 1
   }
 

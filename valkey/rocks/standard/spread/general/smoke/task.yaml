@@ -11,17 +11,20 @@ execute: |
     | grep -q "valkey_version:9.0.4"
 
   echo "Checking runtime process, PID 1, and user..."
-  PID1_USER="$(docker exec "${CONTAINER}" ps -o user -p 1 \
-    | tail -n 1 | tr -d ' ')"
-  [ "$PID1_USER" = "valkey" ] || {
-    echo "Expected PID 1 to run as valkey, got: $PID1_USER" >&2
-    exit 1
-  }
   PID1_CMD="$(docker exec "${CONTAINER}" ps -o cmd -p 1 | tail -n 1)"
-  echo "$PID1_CMD" | grep -q "valkey-server" || {
-    echo "Expected PID 1 to be valkey-server, got: $PID1_CMD" >&2
+  echo "$PID1_CMD" | grep -q "pebble" || {
+    echo "Expected PID 1 to be pebble, got: $PID1_CMD" >&2
     exit 1
   }
+  SERVER_USER="$(docker exec "${CONTAINER}" ps -C valkey-server -o user \
+    | tail -n 1 | tr -d ' ')"
+  [ "$SERVER_USER" = "valkey" ] || {
+    echo "Expected valkey-server to run as valkey, got: $SERVER_USER" >&2
+    exit 1
+  }
+
+  echo "Checking Pebble health checks..."
+  docker exec "${CONTAINER}" pebble checks | grep -qi "up"
 
   echo "Checking server configuration defaults..."
   DIR="$(docker exec "${CONTAINER}" valkey-cli CONFIG GET dir \

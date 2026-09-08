@@ -15,24 +15,24 @@ execute: |
   echo "Checking --help..."
   docker run --rm "${IMAGE}" --help | grep -q "Usage:"
 
-  echo "Checking arbitrary command execution..."
-  docker run --rm "${IMAGE}" sh -c 'echo custom_cmd' \
+  echo "Checking arbitrary command execution via exec..."
+  docker exec "${CONTAINER}" sh -c 'echo custom_cmd' \
     | grep -q "custom_cmd"
 
-  echo "Checking exit code preservation..."
+  echo "Checking exit code preservation via exec..."
   EXIT_CODE=0
-  docker run --rm "${IMAGE}" sh -c 'exit 42' || EXIT_CODE=$?
+  docker exec "${CONTAINER}" sh -c 'exit 42' || EXIT_CODE=$?
   [ "$EXIT_CODE" -eq 42 ] || {
     echo "Expected exit code 42, got: $EXIT_CODE" >&2
     exit 1
   }
 
   echo "Checking standard tool binaries..."
-  docker run --rm "${IMAGE}" valkey-benchmark --help \
+  docker exec "${CONTAINER}" valkey-benchmark --help \
     | grep -q "Usage: valkey-benchmark"
-  docker run --rm "${IMAGE}" valkey-check-aof --version \
+  docker exec "${CONTAINER}" valkey-check-aof --version \
     | grep -q "valkey-check-aof"
-  docker run --rm "${IMAGE}" valkey-check-rdb 2>&1 \
+  docker exec "${CONTAINER}" valkey-check-rdb 2>&1 \
     | grep -q "Usage: valkey-check-rdb"
-  docker run --rm "${IMAGE}" valkey-sentinel --version \
+  docker exec "${CONTAINER}" valkey-sentinel --version \
     | grep -q "Valkey server v=9.0.4"

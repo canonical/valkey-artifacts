@@ -14,10 +14,33 @@ platforms:
   amd64:
   arm64:
 
-entrypoint-command: /usr/local/bin/docker-entrypoint.sh [ valkey-server ]
+entrypoint-service: valkey
+
+services:
+  valkey:
+    override: replace
+    startup: enabled
+    summary: Start Valkey
+    command: /usr/local/bin/docker-entrypoint.sh [ valkey-server ]
+    user: valkey
+    group: valkey
+    working-dir: /data
+    on-success: shutdown
+    on-failure: shutdown
+
+checks:
+  ping:
+    override: replace
+    level: ready
+    period: 10s
+    timeout: 3s
+    threshold: 3
+    tcp:
+      port: 6379
 
 environment:
   VALKEY_VERSION: "9.0.4"
+  PEBBLE_VERBOSE: "1"
 
 parts:
   valkey:
@@ -48,16 +71,12 @@ parts:
       rm -rf "${CRAFT_PRIME}/var/lib/valkey"
       rm -rf "${CRAFT_PRIME}/var/log/valkey"
       rm -rf "${CRAFT_PRIME}/run/sentinel"
-  valkey-user:
+  user:
     plugin: nil
-    after:
-      - valkey
     overlay-script: |
-      set -eux
-      if ! grep -q '^valkey:' "${CRAFT_OVERLAY}/etc/passwd"; then
-        groupadd -P "${CRAFT_OVERLAY}" -r -g 999 valkey
-        useradd -P "${CRAFT_OVERLAY}" -r -g valkey -u 999 valkey
-      fi
+      groupadd --root "${CRAFT_OVERLAY}" -r valkey --gid=999
+      useradd --root "${CRAFT_OVERLAY}" -r -g valkey --uid=999 \
+        --home-dir /data --shell /bin/bash valkey
       mkdir -p "${CRAFT_OVERLAY}/data" \
         "${CRAFT_OVERLAY}/run/valkey"
       chmod 1777 "${CRAFT_OVERLAY}/data" \
