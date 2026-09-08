@@ -133,7 +133,7 @@ jobs:
     uses: ./.github/workflows/snap-standard-pr-publish.yaml
     with:
       snap-path: valkey/snaps/standard
-      channel: 9.1-26.04/edge/pr-${{ github.event.pull_request.number }}
+      channel: 9/edge/pr-${{ github.event.pull_request.number }}
       release-branch: release-pr-${{ github.event.pull_request.number }}
     secrets:
       CRAFT_SOURCE_STORE_CREDENTIALS: ${{ secrets.CRAFT_SOURCE_STORE_CREDENTIALS }}
