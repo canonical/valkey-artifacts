@@ -30,8 +30,12 @@ upstream sources are pulled in at build time via `stage-packages` /
     │   ├── rocks-scan.yaml         # Trivy vulnerability scan + SBOM for a built rock
     │   ├── publish.yaml            # release: publish snaps to edge, then build/test/scan/publish rocks to GHCR
     │   ├── snaps-publish.yaml      # builds and publishes snaps to the Snap Store edge channel
-    │   ├── rocks-publish.yaml      # builds, tests, scans and publishes rocks to GHCR
+    │   ├── rocks-publish.yaml       # builds, tests, scans and publishes rocks to GHCR
+    │   ├── sbomber-scan.yaml       # sbomber run, before publishing and again after
     │   └── cla.yaml                # CLA check
+    ├── scripts/
+    │   ├── generate-sbom-manifest.sh   # sbomber manifest, for built or published artifacts
+    │   └── check-sbomber-state.sh      # fails the job if any sbomber request failed
     └── actions/
         └── test-rock/              # composite action: installs rockcraft/LXD, runs `rockcraft test`
 ```
@@ -214,21 +218,69 @@ On every pull request:
 
 1. `lint.yaml` runs `yamllint` over `valkey/snaps/` and `valkey/rocks/`.
 2. `pr-rocks-from-snaps.yaml` orchestrates the rest:
-   - `snaps-pr-publish.yaml` builds every discovered snap and publishes it to
-     a PR-scoped Snap Store channel (`9.0/edge/pr-<number>`).
+   - `snaps-pr-publish.yaml` builds every discovered snap, sbomber-scans it,
+     and publishes it to a PR-scoped Snap Store channel (`9.0/edge/pr-<number>`).
+     Snaps get no Trivy scan, so this is their only one.
    - Once the new snap revisions are live, `rocks-pr-tests.yaml` retargets
      each rock's `stage-snaps` at that PR channel, builds and tests the rock
      (via `.github/actions/test-rock`) on both `amd64` and `arm64`, then
-     Trivy-scans it (`rocks-scan.yaml`).
+     scans it with both Trivy (`rocks-scan.yaml`) and sbomber
+     (`sbomber-scan.yaml`).
 
 On every push to a release branch (e.g. `9.0/edge`), `publish.yaml`
 orchestrates the same shape for real releases:
 
-1. `snaps-publish.yaml` builds and publishes every snap to the Snap Store
+1. `snaps-publish.yaml` builds every snap and publishes it to the Snap Store
    edge channel.
-2. Once those revisions are live, `rocks-publish.yaml` builds, tests, and
-   Trivy-scans every rock (staging the snap just published), then publishes
-   it to GHCR.
+2. Once those revisions are live, `rocks-publish.yaml` builds, tests and
+   Trivy-scans every rock (staging the snap just published), then publishes it
+   to GHCR.
+3. Finally `sbomber-scan.yaml` runs twice with `source: published`, once for the
+   snaps and once for the rocks. That is where the SBOMs, the scans and the
+   SSDLC reports come from.
+
+### Security scanning
+
+Two tools scan our rocks and snaps:
+
+|           | `rocks-scan.yaml` (Trivy)            | `sbomber-scan.yaml` (sbomber)            |
+| --------- | ------------------------------------ | ---------------------------------------- |
+| Covers    | rocks                                | rocks and snaps                          |
+| Runner    | public                               | Canonical private-endpoint only          |
+| Generates | SARIF in the Security tab, SPDX SBOM | official SBOM, scan report, SSDLC report |
+
+sbomber runs Trivy inside, so it does not find different bugs. What it adds is the official SBOM and the SSDLC report.
+
+Neither tool fails a build over what it finds. Trivy sets no `exit-code`, and
+sbomber has no severity setting. They report, they do not gate.
+
+`sbomber-scan.yaml` does two jobs. The `source` input picks which:
+
+|              | `built`                 | `published`                        |
+| ------------ | ----------------------- | ---------------------------------- |
+| Reads        | the files we just built | the live snap revision or rock tag |
+| Asks for     | scan                    | SBOM and scan                      |
+| SSDLC report | no                      | yes                                |
+| Used by      | pull requests           | releases                           |
+
+
+A release therefore runs sbomber only after publishing, in `publish.yaml` steps 5 and 6. Rocks are still Trivy-scanned before, and that job does block publishing.
+Pull requests use `built` because nothing is published yet, and never report to SSDLC.
+
+To run sbomber you need:
+
+- A private-endpoint runner. The SBOM service and `canonical-secscan-client` are inside Canonical.
+- The `env:` block in `sbomber-scan.yaml`. None of it is secret. Repo variables  `SBOM_DEPARTMENT`, `SBOM_TEAM` and `SBOM_EMAIL` override it. The server only accepts `department` and `team` from a fixed list.
+
+`check-sbomber-state.sh` is what fails the job. sbomber exits 0 even when the server rejected every file, so we read its state file and require every request to say `Succeeded`.
+
+`generate-sbom-manifest.sh` writes the manifest for both runs, from the craft files, so a new snap or rock variant needs no change here. To see what a run would send:
+
+```bash
+ARTIFACTS='[{"name":"valkey","path":"./valkey/rocks/standard"}]' \
+ARTIFACT_KIND=rock PKG_DIR=/path/to/packed/rocks \
+  .github/scripts/generate-sbom-manifest.sh
+```
 
 ## License
 
