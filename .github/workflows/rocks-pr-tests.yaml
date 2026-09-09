@@ -11,10 +11,16 @@ name: Rock tests on PR
 on:
   workflow_call:
     inputs:
-      snap-channel:
-        description: Snap Store channel the rocks should stage snaps from.
-        required: true
+      rocks:
+        description: "JSON array of rock objects to test"
+        required: false
         type: string
+        default: ""
+      snap-channel:
+        description: "Snap Store channel the rocks should stage snaps from"
+        required: false
+        type: string
+        default: ""
 
 jobs:
   discover-rocks:
@@ -27,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rock: ${{ fromJSON(needs.discover-rocks.outputs.rocks) }}
+        rock: ${{ inputs.rocks != '' && fromJSON(inputs.rocks) || fromJSON(needs.discover-rocks.outputs.rocks) }}
         runner:
           - label: ubuntu-26.04 # amd64
             platform: amd64
@@ -40,6 +46,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Point rock stage snaps at PR branch
+        if: inputs.snap-channel != ''
         env:
           ROCK_NAME: ${{ matrix.rock.name }}
           ROCKCRAFT_FILE: ${{ matrix.rock.path }}/rockcraft.yaml
@@ -75,7 +82,7 @@ jobs:
       - test-rocks
     uses: ./.github/workflows/rocks-scan.yaml
     with:
-      rocks: ${{ needs.discover-rocks.outputs.rocks }}
+      rocks: ${{ inputs.rocks != '' && inputs.rocks || needs.discover-rocks.outputs.rocks }}
     secrets: inherit
     permissions:
       actions: read
@@ -90,7 +97,7 @@ jobs:
       - test-rocks
     uses: ./.github/workflows/sbomber-scan.yaml
     with:
-      artifacts: ${{ needs.discover-rocks.outputs.rocks }}
+      artifacts: ${{ inputs.rocks != '' && inputs.rocks || needs.discover-rocks.outputs.rocks }}
       artifact-kind: rock
       report-ssdlc: false
     permissions:

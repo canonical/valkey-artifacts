@@ -6,6 +6,12 @@ set -euo pipefail
 
 TRACK="9.0"
 
+# Check if rockcraft.yaml stages snaps for this rock. If not, skip retargeting cleanly.
+if ! yq '.parts[] | select(has("stage-snaps"))' "${ROCKCRAFT_FILE}" | grep -q .; then
+  echo "Rock ${ROCK_NAME} does not stage snaps in ${ROCKCRAFT_FILE}; skipping retarget."
+  exit 0
+fi
+
 # Check that rockcraft.yaml has stage snaps for this rock pointing at the
 # expected channel, 
 if ! yq \

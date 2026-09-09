@@ -1,0 +1,49 @@
+summary: Valkey server smoke test
+
+execute: |
+  set -eu
+
+  CONTAINER="${SPREAD_TASK//\//_}"
+  IMAGE="$(docker inspect "${CONTAINER}" --format '{{.Config.Image}}')"
+
+  echo "Checking server info..."
+  docker exec "${CONTAINER}" valkey-cli info \
+    | grep -q "valkey_version:9.0.4"
+
+  echo "Checking runtime process, PID 1, and user..."
+  PID1_CMD="$(docker exec "${CONTAINER}" ps -o cmd -p 1 | tail -n 1)"
+  echo "$PID1_CMD" | grep -q "pebble" || {
+    echo "Expected PID 1 to be pebble, got: $PID1_CMD" >&2
+    exit 1
+  }
+  SERVER_USER="$(docker exec "${CONTAINER}" ps -C valkey-server -o user \
+    | tail -n 1 | tr -d ' ')"
+  [ "$SERVER_USER" = "valkey" ] || {
+    echo "Expected valkey-server to run as valkey, got: $SERVER_USER" >&2
+    exit 1
+  }
+
+  echo "Checking Pebble health checks..."
+  docker exec "${CONTAINER}" pebble checks | grep -qi "up"
+
+  echo "Checking server configuration defaults..."
+  DIR="$(docker exec "${CONTAINER}" valkey-cli CONFIG GET dir \
+    | tail -n 1)"
+  [ "$DIR" = "/data" ] || {
+    echo "Expected dir to be /data, got: $DIR" >&2
+    exit 1
+  }
+  PM="$(docker exec "${CONTAINER}" valkey-cli CONFIG GET protected-mode \
+    | tail -n 1)"
+  [ "$PM" = "no" ] || {
+    echo "Expected protected-mode to be no, got: $PM" >&2
+    exit 1
+  }
+
+  echo "Checking remote host connectivity on port 6379..."
+  docker run --rm --network host "${IMAGE}" \
+    valkey-cli -p 6379 ping | grep -q PONG
+  docker run --rm --network host "${IMAGE}" \
+    valkey-cli -p 6379 SET smoke_key smoke_val | grep -q OK
+  docker run --rm --network host "${IMAGE}" \
+    valkey-cli -p 6379 GET smoke_key | grep -q smoke_val

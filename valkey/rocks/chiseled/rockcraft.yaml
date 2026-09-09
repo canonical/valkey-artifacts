@@ -7,33 +7,50 @@ base: ubuntu@26.04
 version: "9.0.4"
 summary: Valkey Chiseled ROCK OCI
 description: |
-  This is an OCI image that bundles Valkey together with the metrics exporter
-  in order to be used in Operators, providing automated operations
-  management from day 0 to day 2 on Valkey, on top of a Virtual Machine cluster
-  and K8s cluster. It is an open source, end-to-end, production ready data
-  platform on top of cloud native technologies.
+  Valkey is an open source (BSD) high-performance key-value datastore.
+  This chiseled rock provides an upstream Docker-compatible container
+  image for Valkey 9.0 on Ubuntu 26.04.
 license: Apache-2.0
 platforms:
   amd64:
   arm64:
 
-run-user: _daemon_
+entrypoint-service: valkey
 
 services:
   valkey:
     override: replace
     startup: enabled
     summary: Start Valkey
-    command: "valkey-server /var/lib/valkey/valkey.conf"
+    command: /usr/local/bin/docker-entrypoint.sh [ valkey-server ]
+    user: valkey
+    group: valkey
+    working-dir: /data
+    on-success: shutdown
+    on-failure: shutdown
+
+checks:
+  ping:
+    override: replace
+    level: ready
+    period: 10s
+    timeout: 3s
+    threshold: 3
+    tcp:
+      port: 6379
+
+environment:
+  VALKEY_VERSION: "9.0.4"
+  PEBBLE_VERBOSE: "1"
 
 parts:
   valkey:
     plugin: nil
-    stage-snaps:
-      - valkey-chiseled/9.0/edge
     stage-packages:
-      - libatomic1
-      - openssl
+      - valkey-server
+      - valkey-tools
+      - libssl3t64
+      - tzdata
     override-stage: |
       craftctl default
       # stay under 80 chars
@@ -48,21 +65,27 @@ parts:
         exit 1
       fi
       echo "Version check passed: $actual"
-  valkey-user:
-    plugin: nil
-    after:
-      - valkey
     override-prime: |
       craftctl default
-      mkdir -p $CRAFT_PRIME/var/lib/valkey
-      mkdir -p $CRAFT_PRIME/var/log/valkey
-      mkdir -p $CRAFT_PRIME/run/valkey
-      cp $CRAFT_PRIME/etc/valkey/valkey.conf $CRAFT_PRIME/var/lib/valkey/
-      CONF="$CRAFT_PRIME/var/lib/valkey/valkey.conf"
-      sed -i -E '/^[[:space:]]*dir[[:space:]]/d' "$CONF"
-      echo 'dir /var/lib/valkey' >> "$CONF"
-      sed -i -E '/^[[:space:]]*daemonize[[:space:]]/d' "$CONF"
-      echo 'daemonize no' >> "$CONF"
-      chown -R 584792:584792 $CRAFT_PRIME/var/lib/valkey
-      chown -R 584792:584792 $CRAFT_PRIME/var/log/valkey
-      chown -R 584792:584792 $CRAFT_PRIME/run/valkey
+      rm -rf "${CRAFT_PRIME}/etc/valkey"
+  user:
+    plugin: nil
+    overlay-script: |
+      groupadd --root "${CRAFT_OVERLAY}" -r valkey --gid=999
+      useradd --root "${CRAFT_OVERLAY}" -r -g valkey --uid=999 \
+        --home-dir /data --shell /bin/bash valkey
+      mkdir -p "${CRAFT_OVERLAY}/data" \
+        "${CRAFT_OVERLAY}/run/valkey"
+      chmod 1777 "${CRAFT_OVERLAY}/data" \
+        "${CRAFT_OVERLAY}/run/valkey"
+      chown 999:999 "${CRAFT_OVERLAY}/data" \
+        "${CRAFT_OVERLAY}/run/valkey"
+  docker-entrypoint:
+    plugin: dump
+    source: local
+    organize:
+      docker-entrypoint.sh: usr/local/bin/docker-entrypoint.sh
+    override-prime: |
+      craftctl default
+      chmod 0755 \
+        "${CRAFT_PRIME}/usr/local/bin/docker-entrypoint.sh"

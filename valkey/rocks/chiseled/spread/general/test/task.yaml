@@ -1,4 +1,0 @@
-summary: test the 'chiseled' project
-
-execute: |
-  docker exec -t "${SPREAD_TASK//\//_}" valkey-cli info

@@ -1,37 +1,122 @@
 # Valkey rock
 [![Publish artifacts](https://github.com/canonical/valkey-artifacts/actions/workflows/publish.yaml/badge.svg)](https://github.com/canonical/valkey-artifacts/actions/workflows/publish.yaml)
 
-This repository contains the packaging metadata for creating a rock image of Valkey. For more information on rocks, 
-visit the [rockcraft Github](https://github.com/canonical/rockcraft).
+This repository contains the packaging metadata for creating an OCI rock of
+Valkey. For more information on rocks, visit the
+[Rockcraft documentation](https://documentation.ubuntu.com/rockcraft/).
 
-## Building the rock
-The steps outlined below are based on the assumption that you are building the rock with the latest LTS of Ubuntu.  
-If you are using another version of Ubuntu or another operating system, the process may be different.
+## How to use this rock
 
-### Clone Repository
+### Building and loading the rock
+
+Install prerequisites:
+
 ```bash
-git clone git@github.com:canonical/valkey-artifacts.git
-cd valkey-artifacts/valkey/rocks/standard
-```
-### Installing Prerequisites
-```bash
-sudo snap install rockcraft --edge --classic
+sudo snap install rockcraft --classic
 sudo snap install docker
 sudo snap install lxd
-```
-### Configuring Prerequisites
-```bash
-sudo usermod -aG docker $USER 
+sudo usermod -aG docker,lxd $USER
 sudo lxd init --auto
 ```
-*_NOTE:_* You will need to open a new shell for the group change to take effect (i.e. `su - $USER`)
-### Packing and Running the rock
+
+Build the rock:
+
 ```bash
+cd valkey/rocks/standard
 rockcraft pack
-rockcraft.skopeo --insecure-policy copy oci-archive:valkey*.rock docker-daemon:valkey:<tag>
-docker run --rm -it valkey:<tag>
 ```
 
-## License:
-The Valkey rock is free software, distributed under the Apache Software License, version 2.0. See licenses for 
-more information.
+Load the rock into Docker:
+
+```bash
+rockcraft.skopeo --insecure-policy copy \
+  oci-archive:valkey_*.rock \
+  docker-daemon:valkey:<tag>
+```
+
+### Start a Valkey instance
+
+```bash
+docker run --name some-valkey -d -p 6379:6379 valkey:<tag>
+```
+
+### Start with persistent storage
+
+Data is stored in `/data`. You can attach a persistent volume to this directory:
+
+```bash
+docker run --name some-valkey -d -p 6379:6379 \
+  -v /my/own/datadir:/data \
+  valkey:<tag> valkey-server --save 60 1 --loglevel warning
+```
+
+Valkey will save snapshots (`dump.rdb`) to `/data`. The container sets a `0077`
+umask by default so database files are only readable by the `valkey` user.
+
+### Connecting via `valkey-cli`
+
+Connect to a running Valkey container over Docker networking:
+
+```bash
+docker run -it --network some-network --rm valkey:<tag> \
+  valkey-cli -h some-valkey
+```
+
+Or connect directly via host networking:
+
+```bash
+docker run -it --network host --rm valkey:<tag> \
+  valkey-cli -p 6379
+```
+
+### Using a custom `valkey.conf`
+
+You can mount your own configuration file into the container:
+
+```bash
+docker run -d --name some-valkey -p 6379:6379 \
+  -v /my/valkey.conf:/usr/local/etc/valkey/valkey.conf:ro \
+  valkey:<tag> valkey-server /usr/local/etc/valkey/valkey.conf
+```
+
+When a `.conf` file is supplied as an argument, Valkey uses your configuration
+directly and default options are not injected.
+
+### Using `VALKEY_EXTRA_FLAGS`
+
+You can pass additional command-line options via the `VALKEY_EXTRA_FLAGS`
+environment variable:
+
+```bash
+docker run -d --name some-valkey \
+  -e VALKEY_EXTRA_FLAGS="--loglevel notice" \
+  valkey:<tag>
+```
+
+### Running Valkey Sentinel
+
+Valkey Sentinel can be executed by passing `valkey-sentinel` and your Sentinel
+configuration:
+
+```bash
+docker run -d --name some-sentinel -p 26379:26379 \
+  -v /my/sentinel.conf:/etc/valkey/sentinel.conf \
+  valkey:<tag> valkey-sentinel /etc/valkey/sentinel.conf
+```
+
+### Security and process user
+
+* **Protected mode**: For container networking convenience, `protected-mode`
+  is set to `no` by default when starting without a custom config. It is
+  strongly recommended to set a password or use a custom configuration when
+  exposing ports externally.
+* **Process user**: The container starts as `root` to ensure correct ownership
+  of `/data`, then drops privileges to the `valkey` user (UID/GID `999`).
+* **Running as non-root**: You can run directly as a specific user with
+  `--user valkey` or `--user <uid>:<gid>`. Ensure the mounted `/data` volume
+  is writable by that UID.
+
+## License
+
+The Valkey rock is free software, distributed under the Apache Software
+License, version 2.0. See `licenses` for more information.
