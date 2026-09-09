@@ -87,7 +87,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    name: Publish Snap | ${{ matrix.snap.name }}
+    name: Publish Snap | ${{ matrix.snap.name }} | ${{ matrix.track }}/edge
     needs:
       - discover-snaps
       - build
@@ -95,9 +95,12 @@ jobs:
       fail-fast: false
       matrix:
         snap: ${{ fromJSON(needs.discover-snaps.outputs.non-standard-snaps) }}
+        track:
+          - "9"
+          - "9.1"
     uses: canonical/data-platform-workflows/.github/workflows/release_snap_edge.yaml@v50.2.1
     with:
-      track: "9"
+      track: ${{ matrix.track }}
       path-to-snap-project-directory: ${{ matrix.snap.path }}
       artifact-prefix: packed-snap-${{ matrix.snap.name }}
     secrets:
