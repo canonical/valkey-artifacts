@@ -32,6 +32,22 @@ rockcraft.skopeo --insecure-policy copy oci-archive:valkey-charmed*.rock docker-
 docker run --rm -it valkey-charmed:<tag>
 ```
 
+## LDAP authentication module
+The charmed rock bundles the
+[valkey-ldap](https://github.com/valkey-io/valkey-ldap) module (version
+`1.1.0`), built from source in the staged snap, at
+`/usr/lib/valkey/modules/libvalkey_ldap.so`.
+It is shipped but not loaded: LDAP authentication is opt-in. To enable it,
+add a `loadmodule` line to the configuration file (`/var/lib/valkey/valkey.conf`)
+and restart the server:
+
+```bash
+MODULE=/usr/lib/valkey/modules/libvalkey_ldap.so
+echo "loadmodule ${MODULE}" >> /var/lib/valkey/valkey.conf
+pebble restart valkey
+valkey-cli module list
+```
+
 ## License:
 The Valkey Charmed rock is free software, distributed under the Apache Software License, version 2.0. See licenses for 
 more information.

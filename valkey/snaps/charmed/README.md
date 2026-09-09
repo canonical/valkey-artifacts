@@ -37,6 +37,26 @@ sudo snap start valkey-charmed.metrics-exporter
 
 Other available commands can be found here: `snap info valkey-charmed`
 
+## LDAP authentication module
+The charmed snap bundles the
+[valkey-ldap](https://github.com/valkey-io/valkey-ldap) module (version
+`1.1.0`), built from source, at
+`/snap/valkey-charmed/current/usr/lib/valkey/modules/libvalkey_ldap.so`.
+It is shipped but not loaded: LDAP authentication is opt-in. To enable it,
+add a `loadmodule` line to the snap-managed config and restart the server:
+
+```bash
+MODULE=/snap/valkey-charmed/current/usr/lib/valkey/modules/libvalkey_ldap.so
+echo "loadmodule ${MODULE}" \
+  | sudo tee -a /var/snap/valkey-charmed/current/etc/valkey/valkey.conf
+sudo snap restart valkey-charmed.server
+valkey-charmed.cli module list
+```
+
+Note that under strict confinement the server
+can only read files below `/var/snap/valkey-charmed`, so custom CA
+certificates must be placed there.
+
 ## Building the Snap
 ### Clone Repository
 ```bash

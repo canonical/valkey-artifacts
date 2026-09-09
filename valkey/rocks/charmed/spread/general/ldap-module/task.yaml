@@ -1,0 +1,32 @@
+summary: Valkey rock LDAP module test
+
+execute: |
+  echo "Running LDAP module test..."
+  container="${SPREAD_TASK//\//_}"
+  module="/usr/lib/valkey/modules/libvalkey_ldap.so"
+  docker exec "$container" test -f "$module"
+
+  # LDAP auth is opt-in, so enable it the way an operator would: add a
+  # loadmodule line to the config and restart the server.
+  conf="/var/lib/valkey/valkey.conf"
+  docker exec "$container" sh -c "echo 'loadmodule $module' >> $conf"
+  docker exec "$container" pebble restart valkey
+
+  retry=0
+  until docker exec "$container" valkey-cli ping 2>/dev/null \
+      | grep -q PONG; do
+    retry=$((retry + 1))
+    if [ $retry -ge 30 ]; then
+      echo "Valkey server did not become ready in time"
+      docker logs "$container" || true
+      exit 1
+    fi
+    sleep 1
+  done
+
+  # the module registers itself under the name "ldap" and exposes its
+  # settings as "ldap.*" configuration parameters
+  docker exec "$container" valkey-cli module list
+  docker exec "$container" valkey-cli module list | grep -q ldap
+  docker exec "$container" valkey-cli config get 'ldap.servers' \
+    | grep -q ldap.servers
