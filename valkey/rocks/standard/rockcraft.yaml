@@ -35,7 +35,7 @@ parts:
   valkey:
     plugin: nil
     stage-snaps:
-      - valkey/9.1/edge
+      - valkey/9/edge
     stage-packages:
       - libatomic1
       - openssl
