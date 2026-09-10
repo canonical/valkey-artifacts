@@ -87,7 +87,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    name: Publish Snap | ${{ matrix.snap.name }} | ${{ matrix.track }}/edge
+    name: Publish Snap | ${{ matrix.snap.name }} | 9/edge
     needs:
       - discover-snaps
       - build
@@ -95,18 +95,46 @@ jobs:
       fail-fast: false
       matrix:
         snap: ${{ fromJSON(needs.discover-snaps.outputs.non-standard-snaps) }}
-        track:
-          - "9"
-          - "9.1"
     uses: canonical/data-platform-workflows/.github/workflows/release_snap_edge.yaml@v50.2.1
     with:
-      track: ${{ matrix.track }}
+      track: "9"
       path-to-snap-project-directory: ${{ matrix.snap.path }}
       artifact-prefix: packed-snap-${{ matrix.snap.name }}
     secrets:
       snap-store-token: ${{ secrets.SNAP_STORE_TOKEN_EDGE }}
     permissions:
       contents: write # Needed to create git tags
+
+  # The store rejects re-uploading an identical binary (upload uniqueness is
+  # keyed on binary_sha3_384, independent of channel), so additional tracks
+  # cannot be published via another `publish` matrix entry. Instead, promote
+  # the build set that `publish` just put live on 9/edge to each additional
+  # track without re-uploading.
+  release-additional-tracks:
+    name: Release Snap | ${{ matrix.snap.name }} | ${{ matrix.track }}/edge
+    needs:
+      - discover-snaps
+      - publish
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        snap: ${{ fromJSON(needs.discover-snaps.outputs.non-standard-snaps) }}
+        # Additional tracks the 9/edge revisions are mirrored to. The primary
+        # track is published by `publish` above.
+        track:
+          - "9.1"
+    env:
+      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_TOKEN_EDGE }}
+    steps:
+      - name: Install snapcraft
+        run: sudo snap install snapcraft --classic
+
+      - name: Promote 9/edge revisions to ${{ matrix.track }}/edge
+        env:
+          SNAP: ${{ matrix.snap.name }}
+          TRACK: ${{ matrix.track }}
+        run: snapcraft promote "$SNAP" --from-channel 9/edge --to-channel "${TRACK}/edge" --yes
 
   publish-standard:
     name: Publish standard snap | ${{ matrix.track }}/edge
