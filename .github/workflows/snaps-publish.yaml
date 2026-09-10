@@ -109,20 +109,20 @@ jobs:
       contents: write # Needed to create git tags
 
   publish-standard:
-    name: Publish standard snap | ${{ matrix.channel }}
+    name: Publish standard snap | ${{ matrix.track }}/edge
     needs:
       - build
     strategy:
       fail-fast: false
       matrix:
-        channel:
-          - 9/edge
-          - 9.1/edge
+        track:
+          - "9"
+          - "9.1"
     uses: ./.github/workflows/snap-standard-pr-publish.yaml
     with:
       snap-path: valkey/snaps/standard
-      channel: ${{ matrix.channel }}
-      release-branch: release-${{ matrix.channel }}
+      channel: ${{ matrix.track }}/edge
+      release-branch: release-${{ matrix.track }}-edge
     secrets:
       CRAFT_SOURCE_STORE_CREDENTIALS: ${{ secrets.CRAFT_SOURCE_STORE_CREDENTIALS }}
       CI_COMMITS_SSH_SIGNING_KEY: ${{ secrets.CI_COMMITS_SSH_SIGNING_KEY }}
