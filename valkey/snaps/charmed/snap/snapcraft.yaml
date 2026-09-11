@@ -27,6 +27,13 @@ hooks:
     plugs:
       - mount-observe
 
+slots:
+  logs:
+    interface: content
+    content: logs
+    read:
+      - $SNAP_COMMON/var/log/valkey
+
 package-repositories:
   - type: apt
     components: [main]
