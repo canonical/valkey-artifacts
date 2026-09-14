@@ -27,7 +27,7 @@ on:
 
 jobs:
   publish:
-    name: Publish snap | valkey
+    name: Publish snap | valkey | ${{ inputs.channel }}
     runs-on: ubuntu-26.04
     env:
       CHANNEL: ${{ inputs.channel }}

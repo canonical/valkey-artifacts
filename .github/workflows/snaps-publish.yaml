@@ -87,7 +87,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    name: Publish Snap | ${{ matrix.snap.name }}
+    name: Publish Snap | ${{ matrix.snap.name }} | 9/edge
     needs:
       - discover-snaps
       - build
@@ -105,14 +105,52 @@ jobs:
     permissions:
       contents: write # Needed to create git tags
 
+  # The store rejects re-uploading an identical binary (upload uniqueness is
+  # keyed on binary_sha3_384, independent of channel), so additional tracks
+  # cannot be published via another `publish` matrix entry. Instead, promote
+  # the build set that `publish` just put live on 9/edge to each additional
+  # track without re-uploading.
+  release-additional-tracks:
+    name: Release Snap | ${{ matrix.snap.name }} | ${{ matrix.track }}/edge
+    needs:
+      - discover-snaps
+      - publish
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        snap: ${{ fromJSON(needs.discover-snaps.outputs.non-standard-snaps) }}
+        # Additional tracks the 9/edge revisions are mirrored to. The primary
+        # track is published by `publish` above.
+        track:
+          - "9.1"
+    env:
+      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_TOKEN_EDGE }}
+    steps:
+      - name: Install snapcraft
+        run: sudo snap install snapcraft --classic
+
+      - name: Promote 9/edge revisions to ${{ matrix.track }}/edge
+        env:
+          SNAP: ${{ matrix.snap.name }}
+          TRACK: ${{ matrix.track }}
+        run: snapcraft promote "$SNAP" --from-channel 9/edge --to-channel "${TRACK}/edge" --yes
+
   publish-standard:
-    uses: ./.github/workflows/snap-standard-pr-publish.yaml
+    name: Publish standard snap | ${{ matrix.track }}/edge
     needs:
       - build
+    strategy:
+      fail-fast: false
+      matrix:
+        track:
+          - "9"
+          - "9.1"
+    uses: ./.github/workflows/snap-standard-pr-publish.yaml
     with:
       snap-path: valkey/snaps/standard
-      channel: 9.1-26.04/edge
-      release-branch: release-edge
+      channel: ${{ matrix.track }}/edge
+      release-branch: release-${{ matrix.track }}-edge
     secrets:
       CRAFT_SOURCE_STORE_CREDENTIALS: ${{ secrets.CRAFT_SOURCE_STORE_CREDENTIALS }}
       CI_COMMITS_SSH_SIGNING_KEY: ${{ secrets.CI_COMMITS_SSH_SIGNING_KEY }}
