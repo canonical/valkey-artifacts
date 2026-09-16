@@ -11,20 +11,21 @@ if [ "${1#-}" != "$1" ] || [ "${1%.conf}" != "$1" ]; then
   set -- valkey-server "$@"
 fi
 
-if [ "$1" = 'valkey-server' ]; then
+if [ "$1" = 'valkey-server' ] || [ "$1" = 'valkey-sentinel' ]; then
   inject=1
   for arg; do
     case "$arg" in
-    *.conf | --protected-mode | --version | -v | --help | -h)
+    --protected-mode | --version | -v | --help | -h)
       inject=0
       break
       ;;
     esac
   done
   if [ "$inject" -eq 1 ]; then
-    server="$1"
-    shift
-    set -- "$server" --protected-mode no "$@"
+    # Append so a config file, if given, stays the first positional arg.
+    # CLI options are parsed after the file and override it, so this
+    # still forces protected-mode off even when the file doesn't set it.
+    set -- "$@" --protected-mode no
   fi
   if [ "$(id -u)" = '0' ]; then
     find . \! -user valkey -exec chown valkey '{}' +
