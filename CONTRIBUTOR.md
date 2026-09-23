@@ -219,7 +219,7 @@ On every pull request:
 1. `lint.yaml` runs `yamllint` over `valkey/snaps/` and `valkey/rocks/`.
 2. `pr-rocks-from-snaps.yaml` orchestrates the rest:
    - `snaps-pr-publish.yaml` builds every discovered snap, sbomber-scans it,
-     and publishes it to a PR-scoped Snap Store channel (`9.0/edge/pr-<number>`).
+     and publishes it to a PR-scoped Snap Store channel (`9/edge/pr-<number>`).
      Snaps get no Trivy scan, so this is their only one.
    - Once the new snap revisions are live, `rocks-pr-tests.yaml` retargets
      each rock's `stage-snaps` at that PR channel, builds and tests the rock
@@ -227,7 +227,7 @@ On every pull request:
      scans it with both Trivy (`rocks-scan.yaml`) and sbomber
      (`sbomber-scan.yaml`).
 
-On every push to a release branch (e.g. `9.0/edge`), `publish.yaml`
+On every push to a release branch (e.g. `9/edge`), `publish.yaml`
 orchestrates the same shape for real releases:
 
 1. `snaps-publish.yaml` builds every snap and publishes it to the Snap Store
