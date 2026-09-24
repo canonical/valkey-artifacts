@@ -3,3 +3,4 @@ summary: Valkey snap smoke test
 execute: |
   echo "Running smoke test..."
   valkey-charmed.cli info
+  snap connections valkey-charmed | grep -q 'valkey-charmed:logs'
