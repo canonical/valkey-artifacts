@@ -23,9 +23,6 @@ execute: |
     exit 1
   }
 
-  echo "Checking Pebble health checks..."
-  docker exec "${CONTAINER}" pebble checks | grep -qi "up"
-
   echo "Checking server configuration defaults..."
   DIR="$(docker exec "${CONTAINER}" valkey-cli CONFIG GET dir \
     | tail -n 1)"
@@ -42,8 +39,8 @@ execute: |
 
   echo "Checking remote host connectivity on port 6379..."
   docker run --rm --network host "${IMAGE}" \
-    valkey-cli -p 6379 ping | grep -q PONG
+    exec valkey-cli -p 6379 ping | grep -q PONG
   docker run --rm --network host "${IMAGE}" \
-    valkey-cli -p 6379 SET smoke_key smoke_val | grep -q OK
+    exec valkey-cli -p 6379 SET smoke_key smoke_val | grep -q OK
   docker run --rm --network host "${IMAGE}" \
-    valkey-cli -p 6379 GET smoke_key | grep -q smoke_val
+    exec valkey-cli -p 6379 GET smoke_key | grep -q smoke_val

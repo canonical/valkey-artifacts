@@ -9,14 +9,14 @@ execute: |
   echo "Checking OCI entrypoint..."
   ENTRYPOINT="$(docker inspect "${IMAGE}" \
     --format '{{json .Config.Entrypoint}}')"
-  [ "$ENTRYPOINT" = '["/usr/bin/pebble","enter","--args","valkey"]' ] || {
+  [ "$ENTRYPOINT" = '["/usr/bin/pebble","enter"]' ] || {
     echo "Unexpected entrypoint: $ENTRYPOINT" >&2
     exit 1
   }
 
   echo "Checking OCI CMD..."
   CMD="$(docker inspect "${IMAGE}" --format '{{json .Config.Cmd}}')"
-  [ "$CMD" = '["valkey-server"]' ] || {
+  [ "$CMD" = 'null' ] || [ "$CMD" = '[]' ] || {
     echo "Unexpected CMD: $CMD" >&2
     exit 1
   }

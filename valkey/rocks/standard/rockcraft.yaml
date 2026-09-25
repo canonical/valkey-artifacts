@@ -7,14 +7,12 @@ version: "9.0.4"
 summary: Valkey ROCK OCI
 description: |
   Valkey is an open source (BSD) high-performance key-value datastore.
-  This rock provides an upstream Docker-compatible container image for
-  Valkey 9.0 on Ubuntu 26.04.
+  This rock provides a container image for Valkey 9.0 on Ubuntu 26.04,
+  aligned with the upstream Docker image.
 license: Apache-2.0
 platforms:
   amd64:
   arm64:
-
-entrypoint-service: valkey
 
 services:
   valkey:
@@ -22,21 +20,9 @@ services:
     startup: enabled
     summary: Start Valkey
     command: /usr/local/bin/docker-entrypoint.sh [ valkey-server ]
-    user: valkey
-    group: valkey
     working-dir: /data
     on-success: shutdown
     on-failure: shutdown
-
-checks:
-  ping:
-    override: replace
-    level: ready
-    period: 10s
-    timeout: 3s
-    threshold: 3
-    tcp:
-      port: 6379
 
 environment:
   VALKEY_VERSION: "9.0.4"

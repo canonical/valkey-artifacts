@@ -44,6 +44,19 @@ rockcraft.skopeo --insecure-policy copy \
 docker run --name some-valkey -d -p 6379:6379 valkey-chiseled:<tag>
 ```
 
+### Passing arguments
+
+The entrypoint is Pebble (`pebble enter`), which runs Valkey as the `valkey`
+service. Arguments after the image name go to Pebble, not to Valkey:
+
+* `--args valkey <command> [args...]` replaces the service command, for
+  example `--args valkey valkey-server --port 6380`.
+* `exec <command> [args...]` runs a one-off command instead of the service.
+  It keeps stdin, the TTY and the exit code, for example `-it ... exec sh`.
+
+Unlike the upstream image, `docker run valkey-chiseled:<tag> --port 6380` or
+`docker run valkey-chiseled:<tag> valkey-server ...` do not reach Valkey.
+
 ### Start with persistent storage
 
 Data is stored in `/data`. You can attach a persistent volume to this directory:
@@ -51,7 +64,7 @@ Data is stored in `/data`. You can attach a persistent volume to this directory:
 ```bash
 docker run --name some-valkey -d -p 6379:6379 \
   -v /my/own/datadir:/data \
-  valkey-chiseled:<tag> valkey-server --save 60 1 --loglevel warning
+  valkey-chiseled:<tag> --args valkey valkey-server --save 60 1 --loglevel warning
 ```
 
 Valkey will save snapshots (`dump.rdb`) to `/data`. The container sets a `0077`
@@ -59,18 +72,17 @@ umask by default so database files are only readable by the `valkey` user.
 
 ### Connecting via `valkey-cli`
 
-Connect to a running Valkey container over Docker networking:
+Connect from inside a running Valkey container:
+
+```bash
+docker exec -it some-valkey valkey-cli
+```
+
+Or from a new container over Docker networking:
 
 ```bash
 docker run -it --network some-network --rm valkey-chiseled:<tag> \
-  valkey-cli -h some-valkey
-```
-
-Or connect directly via host networking:
-
-```bash
-docker run -it --network host --rm valkey-chiseled:<tag> \
-  valkey-cli -p 6379
+  exec valkey-cli -h some-valkey
 ```
 
 ### Using a custom `valkey.conf`
@@ -80,11 +92,8 @@ You can mount your own configuration file into the container:
 ```bash
 docker run -d --name some-valkey -p 6379:6379 \
   -v /my/valkey.conf:/usr/local/etc/valkey/valkey.conf:ro \
-  valkey-chiseled:<tag> valkey-server /usr/local/etc/valkey/valkey.conf
+  valkey-chiseled:<tag> --args valkey valkey-server /usr/local/etc/valkey/valkey.conf
 ```
-
-When a `.conf` file is supplied as an argument, Valkey uses your configuration
-directly and default options are not injected.
 
 ### Using `VALKEY_EXTRA_FLAGS`
 
@@ -99,10 +108,10 @@ docker run -d --name some-valkey \
 
 ### Security and process user
 
-* **Protected mode**: For container networking convenience, `protected-mode`
-  is set to `no` by default when starting without a custom config. It is
-  strongly recommended to set a password or use a custom configuration when
-  exposing ports externally.
+* **Protected mode**: As in the upstream image, `protected-mode` is `no` by
+  default. A configuration file that sets `protected-mode` keeps its value.
+  It is strongly recommended to set a password when exposing ports
+  externally.
 * **Process user**: The container starts as `root` to ensure correct ownership
   of `/data`, then drops privileges to the `valkey` user (UID/GID `999`).
 * **Running as non-root**: You can run directly as a specific user with

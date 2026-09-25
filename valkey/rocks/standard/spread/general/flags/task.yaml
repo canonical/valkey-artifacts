@@ -1,4 +1,4 @@
-summary: Flags and extra flags tests
+summary: Flags, extra flags and config file tests
 
 execute: |
   set -eu
@@ -6,19 +6,58 @@ execute: |
   CONTAINER="${SPREAD_TASK//\//_}"
   IMAGE="$(docker inspect "${CONTAINER}" --format '{{.Config.Image}}')"
 
-  echo "Checking port flag override..."
-  docker run -d --name test_flags_port -p 16385:6385 "${IMAGE}" --port 6385
-  for i in $(seq 1 30); do
-    if docker exec test_flags_port valkey-cli -p 6385 ping 2>/dev/null \
-      | grep -q PONG; then
-      break
-    fi
-    sleep 1
-  done
-  docker exec test_flags_port valkey-cli -p 6385 ping | grep -q PONG
-  docker rm -f test_flags_port
+  wait_for_ping() {
+    for _ in $(seq 1 30); do
+      if docker exec "$1" valkey-cli -p "$2" ping 2>/dev/null \
+        | grep -q PONG; then
+        return 0
+      fi
+      sleep 1
+    done
+    docker logs "$1" >&2 || true
+    return 1
+  }
+
+  echo "Checking port flag override via --args..."
+  docker run -d --name test_flags_port "${IMAGE}" \
+    --args valkey valkey-server --port 6385
+  wait_for_ping test_flags_port 6385
 
   echo "Checking VALKEY_EXTRA_FLAGS..."
-  EXTRA_FLAGS_OUT="$(docker run --rm \
-    -e VALKEY_EXTRA_FLAGS="--loglevel warning" "${IMAGE}" --version)"
-  echo "$EXTRA_FLAGS_OUT" | grep -q "Valkey server v=9.0.4"
+  docker run -d --name test_flags_extra \
+    -e VALKEY_EXTRA_FLAGS="--port 6386" "${IMAGE}"
+  wait_for_ping test_flags_extra 6386
+
+  echo "Preparing config files..."
+  docker volume create test_flags_conf
+  docker run --rm -v test_flags_conf:/conf "${IMAGE}" exec sh -c '
+    echo "protected-mode yes" > /conf/protected.conf
+    echo "port 6390" > /conf/plain.conf
+  '
+
+  echo "Checking config file setting protected-mode is respected..."
+  docker run -d --name test_flags_conf_yes -v test_flags_conf:/conf \
+    "${IMAGE}" --args valkey valkey-server /conf/protected.conf
+  wait_for_ping test_flags_conf_yes 6379
+  PM="$(docker exec test_flags_conf_yes \
+    valkey-cli CONFIG GET protected-mode | tail -n 1)"
+  [ "$PM" = "yes" ] || {
+    echo "Expected protected-mode yes from config, got: $PM" >&2
+    exit 1
+  }
+
+  echo "Checking config file without protected-mode defaults to no..."
+  docker run -d --name test_flags_conf_plain -v test_flags_conf:/conf \
+    "${IMAGE}" --args valkey valkey-server /conf/plain.conf
+  wait_for_ping test_flags_conf_plain 6390
+  PM="$(docker exec test_flags_conf_plain \
+    valkey-cli -p 6390 CONFIG GET protected-mode | tail -n 1)"
+  [ "$PM" = "no" ] || {
+    echo "Expected protected-mode no by default, got: $PM" >&2
+    exit 1
+  }
+
+restore: |
+  docker rm -f test_flags_port test_flags_extra test_flags_conf_yes \
+    test_flags_conf_plain 2>/dev/null || true
+  docker volume rm test_flags_conf 2>/dev/null || true

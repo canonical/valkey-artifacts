@@ -13,18 +13,20 @@ execute: |
   SENTINEL_CONTAINER="${CONTAINER}_sentinel"
   docker rm -f "${SENTINEL_CONTAINER}" 2>/dev/null || true
 
+  docker volume create test_sentinel_data
+  docker run --rm -v test_sentinel_data:/data "${IMAGE}" exec sh -c '
+    echo "port 26379" > /data/sentinel.conf
+    echo "sentinel monitor mymaster 127.0.0.1 6379 1" \
+      >> /data/sentinel.conf
+    echo "sentinel down-after-milliseconds mymaster 5000" \
+      >> /data/sentinel.conf
+    echo "sentinel failover-timeout mymaster 60000" \
+      >> /data/sentinel.conf
+  '
   docker run -d --name "${SENTINEL_CONTAINER}" \
     --network "container:${CONTAINER}" \
-    "${IMAGE}" sh -c '
-      echo "port 26379" > /data/sentinel.conf
-      echo "sentinel monitor mymaster 127.0.0.1 6379 1" \
-        >> /data/sentinel.conf
-      echo "sentinel down-after-milliseconds mymaster 5000" \
-        >> /data/sentinel.conf
-      echo "sentinel failover-timeout mymaster 60000" \
-        >> /data/sentinel.conf
-      exec valkey-sentinel /data/sentinel.conf
-    '
+    -v test_sentinel_data:/data \
+    "${IMAGE}" --args valkey valkey-sentinel /data/sentinel.conf
 
   echo "Waiting for Sentinel to become ready..."
   retry=0
@@ -46,3 +48,7 @@ execute: |
     | grep -q "mymaster"
 
   docker rm -f "${SENTINEL_CONTAINER}" >/dev/null
+
+restore: |
+  docker rm -f "${SPREAD_TASK//\//_}_sentinel" 2>/dev/null || true
+  docker volume rm test_sentinel_data 2>/dev/null || true

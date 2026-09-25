@@ -7,21 +7,25 @@ execute: |
   IMAGE="$(docker inspect "${CONTAINER}" --format '{{.Config.Image}}')"
 
   echo "Checking --version..."
-  docker run --rm "${IMAGE}" --version \
+  docker run --rm "${IMAGE}" exec valkey-server --version \
     | grep -q "Valkey server v=9.0.4"
-  docker run --rm "${IMAGE}" valkey-server --version \
+  docker run --rm "${IMAGE}" --args valkey valkey-server --version \
     | grep -q "Valkey server v=9.0.4"
 
   echo "Checking --help..."
-  docker run --rm "${IMAGE}" --help | grep -q "Usage:"
+  docker run --rm "${IMAGE}" exec valkey-server --help | grep -q "Usage:"
 
   echo "Checking arbitrary command execution via exec..."
-  docker exec "${CONTAINER}" sh -c 'echo custom_cmd' \
+  docker run --rm "${IMAGE}" exec sh -c 'echo custom_cmd' \
     | grep -q "custom_cmd"
+
+  echo "Checking stdin is passed via exec..."
+  echo custom_stdin | docker run --rm -i "${IMAGE}" exec cat \
+    | grep -q "custom_stdin"
 
   echo "Checking exit code preservation via exec..."
   EXIT_CODE=0
-  docker exec "${CONTAINER}" sh -c 'exit 42' || EXIT_CODE=$?
+  docker run --rm "${IMAGE}" exec sh -c 'exit 42' || EXIT_CODE=$?
   [ "$EXIT_CODE" -eq 42 ] || {
     echo "Expected exit code 42, got: $EXIT_CODE" >&2
     exit 1

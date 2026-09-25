@@ -19,12 +19,18 @@ if [ "$1" = 'valkey-server' ] || [ "$1" = 'valkey-sentinel' ]; then
       inject=0
       break
       ;;
+    *.conf)
+      # Respect protected-mode when the config file sets it.
+      if grep -qiE '^[[:space:]]*protected-mode[[:space:]]' "$arg" 2>/dev/null; then
+        inject=0
+        break
+      fi
+      ;;
     esac
   done
   if [ "$inject" -eq 1 ]; then
-    # Append so a config file, if given, stays the first positional arg.
-    # CLI options are parsed after the file and override it, so this
-    # still forces protected-mode off even when the file doesn't set it.
+    # Upstream builds Valkey with protected-mode off by default. Append so a
+    # config file, if given, stays the first positional arg.
     set -- "$@" --protected-mode no
   fi
   if [ "$(id -u)" = '0' ]; then

@@ -43,3 +43,23 @@ execute: |
     echo "Expected /data permissions 1777, got: $DATA_PERM" >&2
     exit 1
   }
+
+  echo "Checking container runs with --user override..."
+  docker run -d --name test_user_override --user 1000:1000 "${IMAGE}"
+  for _ in $(seq 1 30); do
+    if docker exec test_user_override valkey-cli ping 2>/dev/null \
+      | grep -q PONG; then
+      break
+    fi
+    sleep 1
+  done
+  docker exec test_user_override valkey-cli ping | grep -q PONG
+  OVERRIDE_UID="$(docker exec test_user_override ps -C valkey-server -o uid \
+    | tail -n 1 | tr -d ' ')"
+  [ "$OVERRIDE_UID" = "1000" ] || {
+    echo "Expected valkey-server to run as UID 1000, got: $OVERRIDE_UID" >&2
+    exit 1
+  }
+
+restore: |
+  docker rm -f test_user_override 2>/dev/null || true
