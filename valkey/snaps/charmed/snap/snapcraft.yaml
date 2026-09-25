@@ -130,7 +130,7 @@ parts:
     plugin: rust
     source: https://git.launchpad.net/valkey-ldap
     source-type: git
-    source-tag: lp-1.1.0
+    source-tag: lp-v1.1.0
     build-packages:
       - libclang-dev
       - libssl-dev
