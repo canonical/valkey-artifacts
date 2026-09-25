@@ -19,17 +19,31 @@ jobs:
   discover-snaps:
     uses: ./.github/workflows/snaps-discover.yaml
 
-  # 1. Record the revision currently live on the store for the given branch
+  # Standalone rocks (standard & chiseled): test immediately in parallel
+  test-standalone-rocks:
+    name: Test standalone rocks
+    needs: discover-rocks
+    if: ${{ fromJSON(needs.discover-rocks.outputs.standalone-rocks)[0] != null }}
+    uses: ./.github/workflows/rocks-pr-tests.yaml
+    with:
+      rocks: ${{ needs.discover-rocks.outputs.standalone-rocks }}
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+  # 1. Record the revision currently live on the store for snap-backed rocks
   snapshot-current-snap-revisions:
     name: Snapshot current PR snap revisions
     needs:
       - discover-rocks
       - discover-snaps
+    if: ${{ fromJSON(needs.discover-rocks.outputs.snap-backed-rocks)[0] != null }}
     runs-on: ubuntu-26.04
     outputs:
       current-revisions: ${{ steps.current-revisions.outputs.current-revisions }}
     env:
-      ROCKS: ${{ needs.discover-rocks.outputs.rocks }}
+      ROCKS: ${{ needs.discover-rocks.outputs.snap-backed-rocks }}
       SNAPS: ${{ needs.discover-snaps.outputs.snaps }}
       SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_TOKEN_EDGE }}
     steps:
@@ -72,12 +86,15 @@ jobs:
       - name: Poll store until newer revisions appear
         run: .github/scripts/wait-for-snap-revisions.sh
 
-  # 4. Build the rock using the snap in the branch and test it
-  test-pr-rocks:
-    name: Test rocks using PR snaps
-    needs: wait-for-snap-revision
+  # 4. Build the snap-backed rock using the snap in the branch and test it
+  test-snap-backed-rocks:
+    name: Test snap-backed rocks
+    needs:
+      - discover-rocks
+      - wait-for-snap-revision
     uses: ./.github/workflows/rocks-pr-tests.yaml
     with:
+      rocks: ${{ needs.discover-rocks.outputs.snap-backed-rocks }}
       snap-channel: 9.0/edge/pr-${{ github.event.pull_request.number }}
     permissions:
       actions: read

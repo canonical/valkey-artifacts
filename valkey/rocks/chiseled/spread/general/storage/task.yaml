@@ -1,0 +1,73 @@
+summary: Data persistence and storage tests
+
+execute: |
+  set -eu
+
+  CONTAINER="${SPREAD_TASK//\//_}"
+  IMAGE="$(docker inspect "${CONTAINER}" --format '{{.Config.Image}}')"
+
+  echo "Checking dump.rdb creation and permissions in /data..."
+  docker exec "${CONTAINER}" valkey-cli SET storage_key storage_val
+  docker exec "${CONTAINER}" valkey-cli SAVE
+  docker exec "${CONTAINER}" test -f /data/dump.rdb || {
+    echo "dump.rdb not found in /data" >&2
+    exit 1
+  }
+  RDB_PERM="$(docker exec "${CONTAINER}" stat -c '%a' /data/dump.rdb)"
+  [ "$RDB_PERM" = "600" ] || {
+    echo "Expected dump.rdb to have mode 600, got: $RDB_PERM" >&2
+    exit 1
+  }
+
+  echo "Checking persistence across container recreation..."
+  docker volume create test_storage_volume
+  docker run -d --name valkey_persist_1 -v test_storage_volume:/data "${IMAGE}"
+  for i in $(seq 1 30); do
+    if docker exec valkey_persist_1 valkey-cli ping 2>/dev/null \
+      | grep -q PONG; then
+      break
+    fi
+    sleep 1
+  done
+  docker exec valkey_persist_1 valkey-cli SET persist_key "stored"
+  docker exec valkey_persist_1 valkey-cli SAVE
+  docker rm -f valkey_persist_1
+  docker run -d --name valkey_persist_2 -v test_storage_volume:/data "${IMAGE}"
+  for i in $(seq 1 30); do
+    if docker exec valkey_persist_2 valkey-cli ping 2>/dev/null \
+      | grep -q PONG; then
+      break
+    fi
+    sleep 1
+  done
+  VAL="$(docker exec valkey_persist_2 valkey-cli GET persist_key)"
+  docker rm -f valkey_persist_2
+  docker volume rm test_storage_volume
+  [ "$VAL" = "stored" ] || {
+    echo "Data did not persist across volume recreation, got: $VAL" >&2
+    exit 1
+  }
+
+  echo "Checking root-owned /data volume is fixed up on start..."
+  docker volume create test_storage_root
+  # Keep a file in the volume so Docker does not re-seed its permissions.
+  docker run --rm -v test_storage_root:/data "${IMAGE}" exec sh -c '
+    touch /data/keep
+    chown -R root:root /data
+    chmod 755 /data
+  '
+  docker run -d --name valkey_root_data -v test_storage_root:/data "${IMAGE}"
+  for i in $(seq 1 30); do
+    if docker exec valkey_root_data valkey-cli ping 2>/dev/null \
+      | grep -q PONG; then
+      break
+    fi
+    sleep 1
+  done
+  docker exec valkey_root_data valkey-cli SAVE | grep -q OK
+  docker exec valkey_root_data test -f /data/dump.rdb
+
+restore: |
+  docker rm -f valkey_persist_1 valkey_persist_2 valkey_root_data \
+    2>/dev/null || true
+  docker volume rm test_storage_volume test_storage_root 2>/dev/null || true
