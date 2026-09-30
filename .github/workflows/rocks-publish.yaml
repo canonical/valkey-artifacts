@@ -4,6 +4,12 @@ name: Publish rocks to GHCR
 
 on:
   workflow_call:
+    inputs:
+      rocks:
+        description: "JSON array of rock objects to publish"
+        required: false
+        type: string
+        default: ""
   workflow_dispatch:
 
 jobs:
@@ -16,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rock: ${{ fromJSON(needs.discover-rocks.outputs.rocks) }}
+        rock: ${{ inputs.rocks != '' && fromJSON(inputs.rocks) || fromJSON(needs.discover-rocks.outputs.rocks) }}
     uses: canonical/data-platform-workflows/.github/workflows/build_rock.yaml@v50.2.1
     with:
       path-to-rock-directory: ${{ matrix.rock.path }}
@@ -33,7 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rock: ${{ fromJSON(needs.discover-rocks.outputs.rocks) }}
+        rock: ${{ inputs.rocks != '' && fromJSON(inputs.rocks) || fromJSON(needs.discover-rocks.outputs.rocks) }}
         runner:
           - ubuntu-26.04 # amd64
           - ubuntu-26.04-arm # arm64
@@ -59,7 +65,7 @@ jobs:
       - test
     uses: ./.github/workflows/rocks-scan.yaml
     with:
-      rocks: ${{ needs.discover-rocks.outputs.rocks }}
+      rocks: ${{ inputs.rocks != '' && inputs.rocks || needs.discover-rocks.outputs.rocks }}
       artifact-prefix: packed-rock
     secrets: inherit
     permissions:
@@ -77,7 +83,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rock: ${{ fromJSON(needs.discover-rocks.outputs.rocks) }}
+        rock: ${{ inputs.rocks != '' && fromJSON(inputs.rocks) || fromJSON(needs.discover-rocks.outputs.rocks) }}
     uses: canonical/data-platform-workflows/.github/workflows/release_rock_edge.yaml@v50.2.1
     with:
       path-to-rock-directory: ${{ matrix.rock.path }}

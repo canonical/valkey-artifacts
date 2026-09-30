@@ -1,0 +1,65 @@
+summary: User handling and permissions tests
+
+execute: |
+  set -eu
+
+  CONTAINER="${SPREAD_TASK//\//_}"
+  IMAGE="$(docker inspect "${CONTAINER}" --format '{{.Config.Image}}')"
+
+  echo "Checking valkey user and group in running container..."
+  SERVICE_UID="$(docker exec "${CONTAINER}" id -u valkey)"
+  [ "$SERVICE_UID" = "999" ] || {
+    echo "Expected valkey user to have UID 999, got: $SERVICE_UID" >&2
+    exit 1
+  }
+  SERVICE_GID="$(docker exec "${CONTAINER}" id -g valkey)"
+  [ "$SERVICE_GID" = "999" ] || {
+    echo "Expected valkey group to have GID 999, got: $SERVICE_GID" >&2
+    exit 1
+  }
+
+  echo "Checking service process runs as valkey:valkey (999:999)..."
+  PROC_USER="$(docker exec "${CONTAINER}" ps -C valkey-server -o user \
+    | tail -n 1 | tr -d ' ')"
+  [ "$PROC_USER" = "valkey" ] || {
+    echo "Expected valkey-server user valkey, got: $PROC_USER" >&2
+    exit 1
+  }
+  PROC_GROUP="$(docker exec "${CONTAINER}" ps -C valkey-server -o group \
+    | tail -n 1 | tr -d ' ')"
+  [ "$PROC_GROUP" = "valkey" ] || {
+    echo "Expected valkey-server group valkey, got: $PROC_GROUP" >&2
+    exit 1
+  }
+
+  echo "Checking /data ownership and permissions..."
+  DATA_OWNER="$(docker exec "${CONTAINER}" stat -c '%u:%g' /data)"
+  [ "$DATA_OWNER" = "999:999" ] || {
+    echo "Expected /data ownership 999:999, got: $DATA_OWNER" >&2
+    exit 1
+  }
+  DATA_PERM="$(docker exec "${CONTAINER}" stat -c '%a' /data)"
+  [ "$DATA_PERM" = "1777" ] || {
+    echo "Expected /data permissions 1777, got: $DATA_PERM" >&2
+    exit 1
+  }
+
+  echo "Checking container runs with --user override..."
+  docker run -d --name test_user_override --user 1000:1000 "${IMAGE}"
+  for _ in $(seq 1 30); do
+    if docker exec test_user_override valkey-cli ping 2>/dev/null \
+      | grep -q PONG; then
+      break
+    fi
+    sleep 1
+  done
+  docker exec test_user_override valkey-cli ping | grep -q PONG
+  OVERRIDE_UID="$(docker exec test_user_override ps -C valkey-server -o uid \
+    | tail -n 1 | tr -d ' ')"
+  [ "$OVERRIDE_UID" = "1000" ] || {
+    echo "Expected valkey-server to run as UID 1000, got: $OVERRIDE_UID" >&2
+    exit 1
+  }
+
+restore: |
+  docker rm -f test_user_override 2>/dev/null || true

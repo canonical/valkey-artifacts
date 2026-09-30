@@ -23,19 +23,33 @@ jobs:
   discover-snaps:
     uses: ./.github/workflows/snaps-discover.yaml
 
-  # 1. Record the revision currently live on the store before publishing, for
-  #    every snap that has a matching rock (same name). The wait step uses this
-  #    to tell when the new revision has propagated.
+  # Standalone rocks (standard & chiseled): publish immediately without waiting for snaps
+  publish-standalone-rocks:
+    name: Build, test and publish standalone rocks
+    needs: discover-rocks
+    if: ${{ fromJSON(needs.discover-rocks.outputs.standalone-rocks)[0] != null }}
+    uses: ./.github/workflows/rocks-publish.yaml
+    with:
+      rocks: ${{ needs.discover-rocks.outputs.standalone-rocks }}
+    secrets: inherit
+    permissions:
+      actions: read
+      packages: write
+      contents: write
+      security-events: write
+
+  # 1. Record the revision currently live on the store before publishing (snap-backed rocks only)
   snapshot-current-snap-revisions:
     name: Snapshot current snap revisions
     needs:
       - discover-rocks
       - discover-snaps
+    if: ${{ fromJSON(needs.discover-rocks.outputs.snap-backed-rocks)[0] != null }}
     runs-on: ubuntu-26.04
     outputs:
       current-revisions: ${{ steps.current-revisions.outputs.current-revisions }}
     env:
-      ROCKS: ${{ needs.discover-rocks.outputs.rocks }}
+      ROCKS: ${{ needs.discover-rocks.outputs.snap-backed-rocks }}
       SNAPS: ${{ needs.discover-snaps.outputs.snaps }}
       SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_STORE_TOKEN_EDGE }}
     steps:
@@ -47,17 +61,19 @@ jobs:
       - id: current-revisions
         run: .github/scripts/snapshot-current-snap-revisions.sh
 
-  # 2. Build and publish all snaps to the channel first.
+  # 2. Build and publish all snaps to the channel
   publish-snaps:
     name: Publish snaps
-    needs: snapshot-current-snap-revisions
+    needs:
+      - discover-snaps
+      - snapshot-current-snap-revisions
+    if: ${{ always() && needs.discover-snaps.result == 'success' }}
     uses: ./.github/workflows/snaps-publish.yaml
     secrets: inherit
     permissions:
-      contents: write # Needed to create git tags
+      contents: write
 
-  # 3. Wait until every snap that backs a rock has a newer revision live on the
-  #    channel, for every architecture the rocks are built for.
+  # 3. Wait until the snap backing the rock has a newer revision live on the channel
   wait-for-snap-revision:
     name: Wait for new snap revisions
     needs:
@@ -77,18 +93,21 @@ jobs:
       - name: Poll store until newer revisions appear
         run: .github/scripts/wait-for-snap-revisions.sh
 
-  # 4. Build, test, scan and publish the rocks. Publish only happens if build,
-  #    test and the Trivy scan all pass (inside rocks-publish.yaml).
-  publish-rock:
-    name: Build, test and publish rocks
-    needs: wait-for-snap-revision
+  # 4. Build, test, scan and publish snap-backed rocks
+  publish-snap-backed-rocks:
+    name: Build, test and publish snap-backed rocks
+    needs:
+      - discover-rocks
+      - wait-for-snap-revision
     uses: ./.github/workflows/rocks-publish.yaml
+    with:
+      rocks: ${{ needs.discover-rocks.outputs.snap-backed-rocks }}
     secrets: inherit
     permissions:
-      actions: read # Needed to download rock artifacts for Trivy
-      packages: write # Needed to publish to GitHub Container Registry
-      contents: write # Needed to create git tags
-      security-events: write # Needed for Trivy SARIF upload (rocks-scan)
+      actions: read
+      packages: write
+      contents: write
+      security-events: write
 
   # 5. Run SSDLC SBOM and security scan on the published snaps.
   published-snaps:
@@ -113,7 +132,9 @@ jobs:
     name: SBOM, scan and SSDLC | rocks
     needs:
       - discover-rocks
-      - publish-rock
+      - publish-standalone-rocks
+      - publish-snap-backed-rocks
+    if: ${{ always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
     uses: ./.github/workflows/sbomber-scan.yaml
     with:
       artifacts: ${{ needs.discover-rocks.outputs.rocks }}

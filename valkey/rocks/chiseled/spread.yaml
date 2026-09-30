@@ -4,8 +4,7 @@ backends:
   craft:
     type: craft
     systems:
-      - ubuntu-26.04:
-      #- ubuntu-22.04:
+      - ubuntu-26.04
 
 suites:
   spread/general/:
