@@ -3,7 +3,8 @@ summary: Config moves from SNAP_DATA to SNAP_COMMON on refresh from stable
 execute: |
   snap remove valkey-chiseled --purge --terminate
   snap install valkey-chiseled --channel=9.0/stable
-  echo "# refresh-marker" >> /var/snap/valkey-chiseled/current/etc/valkey/valkey.conf
+  echo "# refresh-marker" \
+    >> /var/snap/valkey-chiseled/current/etc/valkey/valkey.conf
   snap install "$CRAFT_ARTIFACT" --dangerous
   grep -q refresh-marker /var/snap/valkey-chiseled/common/etc/valkey/valkey.conf
   test ! -e /var/snap/valkey-chiseled/current/etc/valkey
