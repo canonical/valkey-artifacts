@@ -1,0 +1,16 @@
+summary: Config moves from SNAP_DATA to SNAP_COMMON on refresh from stable
+
+execute: |
+  snap remove valkey --purge --terminate
+  snap install valkey --channel=9.0/stable
+  echo "# refresh-marker" >> /var/snap/valkey/current/etc/valkey/valkey.conf
+  snap install "$CRAFT_ARTIFACT" --dangerous
+  grep -q refresh-marker /var/snap/valkey/common/etc/valkey/valkey.conf
+  test ! -e /var/snap/valkey/current/etc/valkey
+  snap start valkey.server
+  retry=0
+  until valkey.cli ping 2>/dev/null | grep -q PONG; do
+    retry=$((retry + 1))
+    [ $retry -lt 30 ] || { snap logs valkey.server; exit 1; }
+    sleep 1
+  done

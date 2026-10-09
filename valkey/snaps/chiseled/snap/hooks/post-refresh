@@ -1,0 +1,9 @@
+#!/bin/sh -e
+
+# Revisions before this one kept the config in $SNAP_DATA, move it once
+OLD="${SNAP_DATA}"/etc/valkey
+NEW="${SNAP_COMMON}"/etc/valkey
+if [ -d "${OLD}" ] && [ ! -d "${NEW}" ]; then
+    mkdir -p "${SNAP_COMMON}"/etc
+    mv "${OLD}" "${NEW}"
+fi
