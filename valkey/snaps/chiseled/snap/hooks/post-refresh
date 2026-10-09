@@ -1,9 +1,11 @@
 #!/bin/sh -e
 
-# Revisions before this one kept the config in $SNAP_DATA, move it once
+# Older revisions kept the config in $SNAP_DATA. A copy there is the config
+# the server last ran with, so it replaces the one in $SNAP_COMMON.
 OLD="${SNAP_DATA}"/etc/valkey
 NEW="${SNAP_COMMON}"/etc/valkey
-if [ -d "${OLD}" ] && [ ! -d "${NEW}" ]; then
+if [ -d "${OLD}" ]; then
+    rm -rf "${NEW}"
     mkdir -p "${SNAP_COMMON}"/etc
     mv "${OLD}" "${NEW}"
 fi
