@@ -24,5 +24,5 @@ exec "${SNAP}"/usr/bin/setpriv \
     --regid snap_daemon \
     -- \
     "${SNAP}"/usr/bin/valkey-server \
-    "${SNAP_DATA}"/etc/valkey/valkey.conf \
+    "${SNAP_COMMON}"/etc/valkey/valkey.conf \
     --daemonize no

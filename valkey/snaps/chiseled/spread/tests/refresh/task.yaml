@@ -1,0 +1,22 @@
+summary: Config moves from SNAP_DATA to SNAP_COMMON on refresh from stable
+
+execute: |
+  snap remove valkey-chiseled --purge --terminate
+  # 9.0/stable revisions that keep the config in $SNAP_DATA
+  case "$(dpkg --print-architecture)" in
+    amd64) rev=122 ;;
+    arm64) rev=123 ;;
+  esac
+  snap install valkey-chiseled --revision="$rev"
+  echo "# refresh-marker" \
+    >> /var/snap/valkey-chiseled/current/etc/valkey/valkey.conf
+  snap install "$CRAFT_ARTIFACT" --dangerous
+  grep -q refresh-marker /var/snap/valkey-chiseled/common/etc/valkey/valkey.conf
+  test ! -e /var/snap/valkey-chiseled/current/etc/valkey
+  snap start valkey-chiseled.server
+  retry=0
+  until valkey-chiseled.cli ping 2>/dev/null | grep -q PONG; do
+    retry=$((retry + 1))
+    [ $retry -lt 30 ] || { snap logs valkey-chiseled.server; exit 1; }
+    sleep 1
+  done
