@@ -1,0 +1,74 @@
+summary: Valkey rock logrotate test
+
+execute: |
+  echo "Running logrotate test..."
+  container="${SPREAD_TASK//\//_}"
+  # same paths the charm uses on K8s
+  log="/var/log/valkey/valkey.log"
+  conf="/var/lib/valkey/logrotate.conf"
+  state="/var/lib/valkey/logrotate.status"
+
+  # docker exec runs as the rock's run-user, as the charm's Pebble
+  # service does
+  test "$(docker exec "$container" id -un)" = _daemon_
+
+  echo "Pointing Valkey at a log file..."
+  docker exec "$container" sh -c \
+    "echo 'logfile $log' >> /var/lib/valkey/valkey.conf"
+  docker exec "$container" pebble restart valkey
+  retry=0
+  until docker exec "$container" test -f "$log"; do
+    retry=$((retry + 1))
+    if [ $retry -ge 30 ]; then
+      echo "Valkey did not create $log"
+      docker logs "$container" || true
+      exit 1
+    fi
+    sleep 1
+  done
+
+  echo "Writing the logrotate config..."
+  docker exec -i "$container" sh -c "cat > $conf && chmod 644 $conf" <<EOF
+  $log {
+      daily
+      maxsize 1k
+      rotate 14
+      maxage 10
+      missingok
+      nocreate
+      compress
+      delaycompress
+  }
+  EOF
+
+  grow_log() {
+    docker exec "$container" \
+      sh -c "head -c 2048 /dev/zero | tr '\0' x >> $log"
+  }
+  logrotate() {
+    docker exec "$container" /usr/sbin/logrotate -s "$state" "$conf"
+  }
+
+  echo "Rotating a log past maxsize..."
+  grow_log
+  logrotate
+  docker exec "$container" test -f "$log.1"
+  docker exec "$container" test ! -e "$log"
+
+  echo "Checking that Valkey recreates its log..."
+  docker exec "$container" valkey-cli bgsave
+  retry=0
+  until docker exec "$container" test -f "$log"; do
+    retry=$((retry + 1))
+    if [ $retry -ge 30 ]; then
+      echo "Valkey did not recreate $log"
+      exit 1
+    fi
+    sleep 1
+  done
+
+  echo "Rotating again to compress the previous log..."
+  grow_log
+  logrotate
+  docker exec "$container" test -f "$log.1"
+  docker exec "$container" gzip -t "$log.2.gz"
