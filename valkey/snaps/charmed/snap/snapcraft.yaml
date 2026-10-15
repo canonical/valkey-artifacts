@@ -68,7 +68,7 @@ apps:
       - network
       - mount-observe
   check-aof:
-    command: usr/bin/valkey-check-aof
+    command: check_aof.sh
     plugs:
       - home
       - mount-observe
