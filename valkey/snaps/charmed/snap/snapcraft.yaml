@@ -101,11 +101,6 @@ apps:
       - network-bind
       - network-observe
       - mount-observe
-  logrotate:
-    command: start_logrotate.sh
-    daemon: oneshot
-    timer: 00:00-24:00/1440 # every minute
-    install-mode: disable
 
 parts:
   valkey:
@@ -116,7 +111,6 @@ parts:
       - valkey-sentinel
       - prometheus-redis-exporter
       - util-linux
-      - logrotate
     override-stage: |
       craftctl default
       # stay under 80 chars

@@ -42,7 +42,7 @@ parts:
       - valkey-charmed/9.0/edge
     stage-packages:
       - libatomic1
-      - libpopt0
+      - logrotate
       - openssl
     override-stage: |
       craftctl default
