@@ -34,14 +34,6 @@ slots:
     read:
       - $SNAP_COMMON/var/log/valkey
 
-package-repositories:
-  - type: apt
-    components: [main]
-    suites: [resolute]
-    key-id: 6676E3F1A76ADBE4488944BF7D1A96D4BF78C79E
-    url: |
-      https://ppa.launchpadcontent.net/data-platform/prometheus-redis-exporter/ubuntu
-
 apps:
   server:
     command: start_valkey.sh
