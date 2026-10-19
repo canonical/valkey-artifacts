@@ -33,14 +33,9 @@ if [ "$1" = 'valkey-server' ] || [ "$1" = 'valkey-sentinel' ]; then
     # config file, if given, stays the first positional arg.
     set -- "$@" --protected-mode no
   fi
-  if [ "$(id -u)" = '0' ]; then
-    find . \! -user valkey -exec chown valkey '{}' +
-    exec setpriv --reuid=valkey --regid=valkey --clear-groups -- "$0" "$@"
-  else
-    if [ ! -w . ]; then
-      echo >&2 "warning: directory '$(pwd)' is not writable by current user ($(id -u))"
-      echo >&2 "  If persistence is enabled, this will cause errors. Check mount permissions or run as root to allow chown"
-    fi
+  if [ ! -w . ]; then
+    echo >&2 "warning: directory '$(pwd)' is not writable by current user ($(id -u))"
+    echo >&2 "  If persistence is enabled, this will cause errors. Check mount permissions"
   fi
 fi
 

@@ -23,8 +23,8 @@ execute: |
 
   echo "Checking default OCI user..."
   USER="$(docker inspect "${IMAGE}" --format '{{.Config.User}}')"
-  [ -z "$USER" ] || {
-    echo "Expected default user to be empty (root), got: $USER" >&2
+  [ "$USER" = "584792" ] || {
+    echo "Expected default user to be 584792 (_daemon_), got: $USER" >&2
     exit 1
   }
 

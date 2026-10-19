@@ -6,36 +6,36 @@ execute: |
   CONTAINER="${SPREAD_TASK//\//_}"
   IMAGE="$(docker inspect "${CONTAINER}" --format '{{.Config.Image}}')"
 
-  echo "Checking valkey user and group in running container..."
-  SERVICE_UID="$(docker exec "${CONTAINER}" id -u valkey)"
-  [ "$SERVICE_UID" = "999" ] || {
-    echo "Expected valkey user to have UID 999, got: $SERVICE_UID" >&2
+  echo "Checking _daemon_ user and group in running container..."
+  SERVICE_UID="$(docker exec "${CONTAINER}" id -u _daemon_)"
+  [ "$SERVICE_UID" = "584792" ] || {
+    echo "Expected _daemon_ user to have UID 584792, got: $SERVICE_UID" >&2
     exit 1
   }
-  SERVICE_GID="$(docker exec "${CONTAINER}" id -g valkey)"
-  [ "$SERVICE_GID" = "999" ] || {
-    echo "Expected valkey group to have GID 999, got: $SERVICE_GID" >&2
+  SERVICE_GID="$(docker exec "${CONTAINER}" id -g _daemon_)"
+  [ "$SERVICE_GID" = "584792" ] || {
+    echo "Expected _daemon_ group to have GID 584792, got: $SERVICE_GID" >&2
     exit 1
   }
 
-  echo "Checking service process runs as valkey:valkey (999:999)..."
+  echo "Checking service process runs as _daemon_:_daemon_ (584792:584792)..."
   PROC_USER="$(docker exec "${CONTAINER}" ps -C valkey-server -o user \
     | tail -n 1 | tr -d ' ')"
-  [ "$PROC_USER" = "valkey" ] || {
-    echo "Expected valkey-server user valkey, got: $PROC_USER" >&2
+  [ "$PROC_USER" = "_daemon_" ] || {
+    echo "Expected valkey-server user _daemon_, got: $PROC_USER" >&2
     exit 1
   }
   PROC_GROUP="$(docker exec "${CONTAINER}" ps -C valkey-server -o group \
     | tail -n 1 | tr -d ' ')"
-  [ "$PROC_GROUP" = "valkey" ] || {
-    echo "Expected valkey-server group valkey, got: $PROC_GROUP" >&2
+  [ "$PROC_GROUP" = "_daemon_" ] || {
+    echo "Expected valkey-server group _daemon_, got: $PROC_GROUP" >&2
     exit 1
   }
 
   echo "Checking /data ownership and permissions..."
   DATA_OWNER="$(docker exec "${CONTAINER}" stat -c '%u:%g' /data)"
-  [ "$DATA_OWNER" = "999:999" ] || {
-    echo "Expected /data ownership 999:999, got: $DATA_OWNER" >&2
+  [ "$DATA_OWNER" = "584792:584792" ] || {
+    echo "Expected /data ownership 584792:584792, got: $DATA_OWNER" >&2
     exit 1
   }
   DATA_PERM="$(docker exec "${CONTAINER}" stat -c '%a' /data)"
