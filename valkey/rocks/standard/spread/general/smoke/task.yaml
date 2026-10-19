@@ -18,8 +18,8 @@ execute: |
   }
   SERVER_USER="$(docker exec "${CONTAINER}" ps -C valkey-server -o user \
     | tail -n 1 | tr -d ' ')"
-  [ "$SERVER_USER" = "valkey" ] || {
-    echo "Expected valkey-server to run as valkey, got: $SERVER_USER" >&2
+  [ "$SERVER_USER" = "_daemon_" ] || {
+    echo "Expected valkey-server to run as _daemon_, got: $SERVER_USER" >&2
     exit 1
   }
 

@@ -14,6 +14,8 @@ platforms:
   amd64:
   arm64:
 
+run-user: _daemon_
+
 services:
   valkey:
     override: replace
@@ -57,14 +59,11 @@ parts:
   user:
     plugin: nil
     overlay-script: |
-      groupadd --root "${CRAFT_OVERLAY}" -r valkey --gid=999
-      useradd --root "${CRAFT_OVERLAY}" -r -g valkey --uid=999 \
-        --home-dir /data --shell /bin/bash valkey
       mkdir -p "${CRAFT_OVERLAY}/data" \
         "${CRAFT_OVERLAY}/run/valkey"
       chmod 1777 "${CRAFT_OVERLAY}/data" \
         "${CRAFT_OVERLAY}/run/valkey"
-      chown 999:999 "${CRAFT_OVERLAY}/data" \
+      chown 584792:584792 "${CRAFT_OVERLAY}/data" \
         "${CRAFT_OVERLAY}/run/valkey"
   docker-entrypoint:
     plugin: dump

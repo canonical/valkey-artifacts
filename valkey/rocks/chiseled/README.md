@@ -68,7 +68,7 @@ docker run --name some-valkey -d -p 6379:6379 \
 ```
 
 Valkey will save snapshots (`dump.rdb`) to `/data`. The container sets a `0077`
-umask by default so database files are only readable by the `valkey` user.
+umask by default so database files are only readable by the `_daemon_` user.
 
 ### Connecting via `valkey-cli`
 
@@ -112,11 +112,10 @@ docker run -d --name some-valkey \
   default. A configuration file that sets `protected-mode` keeps its value.
   It is strongly recommended to set a password when exposing ports
   externally.
-* **Process user**: The container starts as `root` to ensure correct ownership
-  of `/data`, then drops privileges to the `valkey` user (UID/GID `999`).
-* **Running as non-root**: You can run directly as a specific user with
-  `--user valkey` or `--user <uid>:<gid>`. Ensure the mounted `/data` volume
-  is writable by that UID.
+* **Process user**: The container runs as the `_daemon_` user (UID/GID
+  `584792`). Ensure a mounted `/data` volume is writable by that UID.
+* **Running as another user**: You can pick a user with `--user <uid>:<gid>`.
+  Ensure a mounted `/data` volume is writable by that UID.
 
 ## License
 

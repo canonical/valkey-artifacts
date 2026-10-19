@@ -30,14 +30,14 @@ execute: |
 
   echo "Preparing config files..."
   docker volume create test_flags_conf
-  docker run --rm -v test_flags_conf:/conf "${IMAGE}" exec sh -c '
-    echo "protected-mode yes" > /conf/protected.conf
-    echo "port 6390" > /conf/plain.conf
+  docker run --rm -v test_flags_conf:/data "${IMAGE}" exec sh -c '
+    echo "protected-mode yes" > /data/protected.conf
+    echo "port 6390" > /data/plain.conf
   '
 
   echo "Checking config file setting protected-mode is respected..."
-  docker run -d --name test_flags_conf_yes -v test_flags_conf:/conf \
-    "${IMAGE}" --args valkey valkey-server /conf/protected.conf
+  docker run -d --name test_flags_conf_yes -v test_flags_conf:/data \
+    "${IMAGE}" --args valkey valkey-server /data/protected.conf
   wait_for_ping test_flags_conf_yes 6379
   PM="$(docker exec test_flags_conf_yes \
     valkey-cli CONFIG GET protected-mode | tail -n 1)"
@@ -47,8 +47,8 @@ execute: |
   }
 
   echo "Checking config file without protected-mode defaults to no..."
-  docker run -d --name test_flags_conf_plain -v test_flags_conf:/conf \
-    "${IMAGE}" --args valkey valkey-server /conf/plain.conf
+  docker run -d --name test_flags_conf_plain -v test_flags_conf:/data \
+    "${IMAGE}" --args valkey valkey-server /data/plain.conf
   wait_for_ping test_flags_conf_plain 6390
   PM="$(docker exec test_flags_conf_plain \
     valkey-cli -p 6390 CONFIG GET protected-mode | tail -n 1)"
